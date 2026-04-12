@@ -691,7 +691,7 @@ button.btn-header { font-family: var(--font-mono); }
 
 <div class="section-divider"></div>
 <div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
-<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGW</span></div>
+<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGateway</span></div>
 
 </div>
 
