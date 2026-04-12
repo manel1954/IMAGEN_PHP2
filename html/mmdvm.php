@@ -283,7 +283,7 @@ if ($action === 'backup-configs') {
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
         '/home/pi/DMRGateway/DMRGateway.ini',
         '/home/pi/DStarGateway/DStarGateway.ini',
-        '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'
+        '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini',
 
     ];
     $fileList = implode(' ', array_map('escapeshellarg', $files));
