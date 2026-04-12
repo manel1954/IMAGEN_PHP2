@@ -670,7 +670,7 @@ button.btn-header { font-family: var(--font-mono); }
         <div class="station-callsign" id="scCallsign">📡 —</div>
     </div>
         <div class="station-divider" style="height:50px;"></div>
-        <div class="station-meta-item"><span class="station-meta-label">🖥️ CPU</span><span class="station-meta-value" id="siCpu" style="color:var(--green);">—</span></div>
+        <div class="station-meta-item"><span class="station-meta-label">🖥️ CPUx</span><span class="station-meta-value" id="siCpu" style="color:var(--green);">—</span></div>
         <div class="station-meta-item"><span class="station-meta-label">🌡️ Temp</span><span class="station-meta-value" id="siTemp" style="color:var(--amber);">—</span></div>
         <div class="station-meta-item"><span class="station-meta-label">💾 RAM usada</span><span class="station-meta-value" id="siRam" style="color:var(--cyan);">—</span></div>
         <div class="station-meta-item"><span class="station-meta-label">💾 RAM libre</span><span class="station-meta-value" id="siRamFree" style="color:var(--text);">—</span></div>
