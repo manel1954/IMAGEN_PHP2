@@ -277,13 +277,9 @@ if ($action === 'backup-configs') {
     $files = [
         '/home/pi/MMDVMHost/MMDVMHost.ini',
         '/home/pi/MMDVMHost/MMDVMYSF.ini',
-        '/home/pi/MMDVMHost/MMDVMDSTAR.ini',
-        '/home/pi/MMDVMHost/MMDVMNXDN.ini',
         '/home/pi/Display-Driver/DisplayDriver.ini',
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
         '/home/pi/DMRGateway/DMRGateway.ini',
-        '/home/pi/DStarGateway/DStarGateway.ini',
-        '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'
     ];
     $fileList = implode(' ', array_map('escapeshellarg', $files));
     shell_exec("zip -j " . escapeshellarg($zipPath) . " {$fileList} 2>/dev/null");
@@ -307,7 +303,7 @@ if ($action === 'restore-configs') {
     if (!$uploadOk) { $errCode = $_FILES['zipfile']['error'] ?? -1; ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se recibió el fichero. Error: ' . $errCode]); exit; }
     $tmpZip = $_FILES['zipfile']['tmp_name'];
     if (!file_exists($tmpZip) || filesize($tmpZip) === 0) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'Fichero vacío.']); exit; }
-    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','MMDVMDS.ini'=>'/home/pi/MMDVMHost/MMDVMDSTAR.ini','MMDVMNXDN.ini'=>'/home/pi/MMDVMHost/MMDVMNXDN.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini','DStarGateway.ini'=>'/home/pi/DStarGateway/DStarGateway.ini','NXDNGateway.ini'=>'/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'];
+    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini'];
     $zip = new ZipArchive(); $openResult = $zip->open($tmpZip);
     if ($openResult !== true) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se pudo abrir el ZIP. Código: ' . $openResult]); exit; }
     $restored = []; $errors = [];
@@ -760,6 +756,7 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
     <div class="auto-badge" id="dstarRefreshBadge" style="display:none;color:#00e5ff;"><div class="dot-sm" style="background:#00e5ff;"></div> D-STAR activo</div>
     <div class="service-card-btns" style="margin-top:.4rem;">
+      <a href="edit_ini.php?file=mmdvmdstar" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero MMDVMDSTAR.ini</a>
       <a href="edit_ini.php?file=dstargateway" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero DStarGateway.ini</a>
     </div>
   </div>
@@ -1015,13 +1012,17 @@ async function toggleDStar(chk){
     const wasOn=!chk.checked;const sw=document.getElementById('swDSTAR');chk.checked=wasOn;sw.classList.add('busy');
     try{
         await fetch(wasOn?'?action=dstar-stop':'?action=dstar-start');
-        await new Promise(r=>setTimeout(r,wasOn?5000:3000));
-        const r=await fetch('?action=dstar-status');const d=await r.json();
-        const gw=d.gateway==='active',mmd=d.mmdvm==='active';
-        setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');
-        dstarRunning=(gw||mmd)&&!d.stopped;setDSTARToggle(dstarRunning);
-        if(wasOn){stopDStarLogs();clearLog('logDstarGw');clearLog('logDstarMmd');}
-        else startDStarLogs();
+        // Polling hasta que el estado cambie (máx 15 intentos x 1s)
+        let ok=false;
+        for(let i=0;i<15;i++){
+            await new Promise(r=>setTimeout(r,1000));
+            const r=await fetch('?action=dstar-status');const d=await r.json();
+            const gw=d.gateway==='active',mmd=d.mmdvm==='active';
+            const isOn=(gw||mmd)&&!d.stopped;
+            if(wasOn && !isOn){ok=true;setDot('dot-dstargw','off');setDot('dot-dstarmmd','off');dstarRunning=false;setDSTARToggle(false);stopDStarLogs();clearLog('logDstarGw');clearLog('logDstarMmd');break;}
+            if(!wasOn && isOn){ok=true;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=true;setDSTARToggle(true);startDStarLogs();break;}
+        }
+        if(!ok){const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';dstarRunning=(gw||mmd)&&!d.stopped;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');setDSTARToggle(dstarRunning);}
     }catch(e){console.warn('toggleDStar error:',e);}
     finally{sw.classList.remove('busy');}
 }

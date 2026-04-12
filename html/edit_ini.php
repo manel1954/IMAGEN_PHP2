@@ -9,6 +9,7 @@ $files = [
     'ysfgateway'   => '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
     'displaydriver'=> '/home/pi/Display-Driver/DisplayDriver.ini',
     'dstargateway' => '/home/pi/DStarGateway/DStarGateway.ini',
+    'mmdvmdstar'   => '/home/pi/MMDVMHost/MMDVMDSTAR.ini',
 ];
 
 $key  = $_GET['file'] ?? '';
