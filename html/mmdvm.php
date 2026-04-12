@@ -682,14 +682,17 @@ button.btn-header { font-family: var(--font-mono); }
 
 <div class="status-bar">
 <div class="status-item"><div class="dot" id="dot-mosquitto"></div><span>Mosquitto</span></div>
-<div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
 <div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
+<div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
+
 <div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
 <div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
+<div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
+
 <div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGW</span></div>
 <div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
+<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGW</span></div>
+
 </div>
 
 <div class="controls-section">
