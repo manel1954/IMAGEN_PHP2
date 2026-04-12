@@ -657,9 +657,9 @@ button.btn-header { font-family: var(--font-mono); }
 <header class="ctrl-header">
 <img src="Logo_ea3eiz.png" alt="EA3EIZ" style="height:40px;width:auto;">
 <h1>PANEL SISTEMAS DIGITALES</h1>
-<a href="edit_ini.php?file=displaydriver" target="_blank" class="btn-header cyan"> 📄 Config Display-Driver </a>
-<a href="?action=backup-configs" class="btn-header amber"> 💾 Backup Configs </a>
-<button onclick="openRestore()" class="btn-header cyan"> 📂 Restore Configs </button>
+<a href="edit_ini.php?file=displaydriver" target="_blank" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
+<a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
+<button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 </header>
 <main class="ctrl-body">
