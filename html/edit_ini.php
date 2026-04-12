@@ -3,11 +3,12 @@ require_once __DIR__ . '/auth.php';
 
 
 $files = [
-    'mmdvm'      => '/home/pi/MMDVMHost/MMDVMHost.ini',
-    'dmrgateway' => '/home/pi/DMRGateway/DMRGateway.ini',
-    'mmdvmysf'   => '/home/pi/MMDVMHost/MMDVMYSF.ini',
-    'ysfgateway' => '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
-    'displaydriver' => '/home/pi/Display-Driver/DisplayDriver.ini',
+    'mmdvm'        => '/home/pi/MMDVMHost/MMDVMHost.ini',
+    'dmrgateway'   => '/home/pi/DMRGateway/DMRGateway.ini',
+    'mmdvmysf'     => '/home/pi/MMDVMHost/MMDVMYSF.ini',
+    'ysfgateway'   => '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
+    'displaydriver'=> '/home/pi/Display-Driver/DisplayDriver.ini',
+    'dstargateway' => '/home/pi/DStarGateway/DStarGateway.ini',
 ];
 
 $key  = $_GET['file'] ?? '';
