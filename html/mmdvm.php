@@ -443,7 +443,7 @@ if ($action === 'ysf-transmission') {
 :root { --bg: #0a0e14; --surface: #111720; --border: #1e2d3d; --green: #00ff9f; --green-dim: #00cc7a; --red: #ff4560; --amber: #ffb300; --cyan: #00d4ff; --violet: #b57aff; --text: #a8b9cc; --text-dim: #4a5568; --font-mono: 'Share Tech Mono', monospace; --font-ui: 'Rajdhani', sans-serif; --font-orb: 'Orbitron', monospace; }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 1rem; min-height: 100vh; padding: 0; margin: 0; }
-.ctrl-header { border-bottom: 1px solid var(--border); padding: 1.2rem 2rem; display: flex; align-items: center; gap: .8rem; background: var(--surface); flex-wrap: wrap; }
+.ctrl-header { border-bottom: 1px solid var(--border); padding: 1.2rem 2rem; display: flex; align-items: center; justify-content: center; gap: .8rem; background: var(--surface); flex-wrap: wrap; }
 .ctrl-header h1 { font-family: var(--font-ui); font-weight: 700; font-size: 1.5rem; letter-spacing: .08em; color: #e2eaf5; margin: 0; text-transform: uppercase; }
 .btn-header { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; background: transparent; border-radius: 4px; padding: .35rem .9rem; cursor: pointer; transition: background .2s; text-decoration: none; display: inline-block; }
 .btn-header.cyan { color: var(--cyan); border: 1px solid var(--cyan); }
