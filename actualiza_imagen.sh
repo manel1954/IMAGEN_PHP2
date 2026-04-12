@@ -9,7 +9,7 @@
                         sleep 6                                             
                         sudo chmod 777 -R /home/pi/A108   
                         sudo chmod 777 -R /var/www/html               
-                        sudo apt-get install -y php-zip && sudo systemctl restart apache2
+
                         
                  
                  
