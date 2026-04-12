@@ -757,11 +757,11 @@ button.btn-header { font-family: var(--font-mono); }
     <div class="auto-badge" id="dstarRefreshBadge" style="display:none;color:#00e5ff;"><div class="dot-sm" style="background:#00e5ff;"></div> D-STAR activo</div>
     <div class="service-card-btns" style="margin-top:.6rem;">
       <a href="mmdvmdstar_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">⚙ MMDVMDSTAR CONFIG</a>
-      <a href="dstargateway_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">⚙ DSTARGATEWAY CONFIG</a>
+      <a href="dstargateway_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">⚙ DSTARGATEWAY CONFIG</a>
     </div>
     <div class="service-card-btns" style="margin-top:.4rem;">
       <a href="edit_ini.php?file=mmdvmdstar" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero MMDVMDSTAR.ini</a>
-      <a href="edit_ini.php?file=dstargateway" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero DStarGateway.ini</a>
+      <a href="edit_ini.php?file=dstargateway" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">📄 editar fichero DStarGateway.ini</a>
     </div>
   </div>
 </div>
