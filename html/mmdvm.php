@@ -277,9 +277,13 @@ if ($action === 'backup-configs') {
     $files = [
         '/home/pi/MMDVMHost/MMDVMHost.ini',
         '/home/pi/MMDVMHost/MMDVMYSF.ini',
+        '/home/pi/MMDVMHost/MMDVMDSTAR.ini',
+        '/home/pi/MMDVMHost/MMDVMNXDN.ini',
         '/home/pi/Display-Driver/DisplayDriver.ini',
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
         '/home/pi/DMRGateway/DMRGateway.ini',
+        '/home/pi/DStarGateway/DStarGateway.ini',
+        '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'
     ];
     $fileList = implode(' ', array_map('escapeshellarg', $files));
     shell_exec("zip -j " . escapeshellarg($zipPath) . " {$fileList} 2>/dev/null");
@@ -303,7 +307,7 @@ if ($action === 'restore-configs') {
     if (!$uploadOk) { $errCode = $_FILES['zipfile']['error'] ?? -1; ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se recibió el fichero. Error: ' . $errCode]); exit; }
     $tmpZip = $_FILES['zipfile']['tmp_name'];
     if (!file_exists($tmpZip) || filesize($tmpZip) === 0) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'Fichero vacío.']); exit; }
-    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini'];
+    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','MMDVMDS.ini'=>'/home/pi/MMDVMHost/MMDVMDSTAR.ini','MMDVMNXDN.ini'=>'/home/pi/MMDVMHost/MMDVMNXDN.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini','DStarGateway.ini'=>'/home/pi/DStarGateway/DStarGateway.ini','NXDNGateway.ini'=>'/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'];
     $zip = new ZipArchive(); $openResult = $zip->open($tmpZip);
     if ($openResult !== true) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se pudo abrir el ZIP. Código: ' . $openResult]); exit; }
     $restored = []; $errors = [];
