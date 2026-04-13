@@ -693,14 +693,6 @@ button.btn-header { font-family: var(--font-mono); }
 .update-console .err { color: var(--red); }
 .update-console .inf { color: #7a9ab5; }
 </style>
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
-<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.min.js"></script>
-
-
-
 </head>
 <body>
 <header class="ctrl-header">
@@ -720,8 +712,6 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<a href="#" class="btn-header cyan" data-bs-toggle="modal" data-bs-target="#terminalModal">Terminal</a>
-
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 </div>
 </header>
@@ -1171,63 +1161,5 @@ fetchSysInfo();setInterval(fetchSysInfo,8000);
     showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
 })();
 </script>
-
-<!-- Modal de Terminal -->
-<div class="modal fade" id="terminalModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="background:#0a0e14;border:1px solid #1e2d3d;">
-      <div class="modal-header" style="border-bottom:1px solid #1e2d3d;">
-        <h5 class="modal-title" style="font-family:var(--font-mono);color:#00d4ff;">Terminal</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-0">
-        <div id="terminal" style="height:60vh;width:100%;background:#000;"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-let terminalInstance = null;
-let terminalFit = null;
-let terminalReady = false;
-
-function initTerminal() {
-    if (terminalReady) return;
-
-    terminalInstance = new Terminal({
-        theme: {
-            background: '#000000',
-            foreground: '#00ff9f',
-            cursor: '#00d4ff'
-        },
-        fontFamily: 'monospace',
-        fontSize: 14,
-        cursorBlink: true,
-        convertEol: true
-    });
-
-    terminalFit = new FitAddon.FitAddon();
-    terminalInstance.loadAddon(terminalFit);
-    terminalInstance.open(document.getElementById('terminal'));
-    terminalFit.fit();
-    terminalInstance.write('A108 Terminal ready\r\n$ ');
-
-    terminalReady = true;
-}
-
-document.getElementById('terminalModal').addEventListener('shown.bs.modal', function () {
-    initTerminal();
-    setTimeout(() => {
-        if (terminalFit) terminalFit.fit();
-    }, 150);
-});
-
-window.addEventListener('resize', function () {
-    if (terminalFit) terminalFit.fit();
-});
-</script>
-
 </body>
 </html>
-
