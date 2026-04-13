@@ -1,5 +1,6 @@
 #!/bin/bash
 
+                        git config --global --add safe.directory /home/pi/IMAGEN_PHP2
                         cd /home/pi/IMAGEN_PHP2                                             
                         git pull --force                      
                         sudo rm -R /home/pi/A108
