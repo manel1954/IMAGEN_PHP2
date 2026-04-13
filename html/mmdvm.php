@@ -886,8 +886,8 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 <!-- ▼▼▼ PANELES DSTAR — se ocultan cuando D-STAR está OFF ▼▼▼ -->
 <div id="dstarLogPanels" style="display:none;">
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#00e5ff;">▸ DStarGateway</span><button class="btn-clear" onclick="clearLog('logDstarGw')">limpiar</button></div><div class="log-output" id="logDstarGw">Esperando DStarGateway…</div></div>
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#80f0ff;">▸ MMDVMHost DStar</span><button class="btn-clear" onclick="clearLog('logDstarMmd')">limpiar</button></div><div class="log-output" id="logDstarMmd">Esperando MMDVMHost DStar…</div></div>
+<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#00e5ff;">▸ DStarGateway</span><button class="btn-clear" onclick="clearLog('logDstarGw')">limpiar</button></div><div class="log-output" id="logDstarGw">Esperando DStarGateway…</div></div>
 </div>
 <!-- ▲▲▲ FIN PANELES DSTAR ▲▲▲ -->
 </div>
