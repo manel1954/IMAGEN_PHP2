@@ -454,20 +454,16 @@ button.btn-header { font-family: var(--font-mono); }
 .update-console .err { color: var(--red); }
 .update-console .inf { color: #7a9ab5; }
 /* ── Terminal ── */
-.xterm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9600; align-items:center; justify-content:center; }
+.xterm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9600; align-items:center; justify-content:center; }
 .xterm-modal.open { display:flex; }
-.xterm-box { background:#0d1117; border:1px solid #00ff9f; border-radius:8px; width:860px; max-width:96vw; display:flex; flex-direction:column; box-shadow:0 0 40px rgba(0,255,159,.15); }
-.xterm-bar { background:#161b22; border-bottom:1px solid #21262d; padding:.45rem 1rem; display:flex; align-items:center; gap:.5rem; border-radius:8px 8px 0 0; }
-.xterm-dot { width:12px; height:12px; border-radius:50%; display:inline-block; flex-shrink:0; }
-.xterm-dot.xr { background:#ff5f57; cursor:pointer; } .xterm-dot.xr:hover { background:#ff3b30; }
-.xterm-dot.xy { background:#febc2e; } .xterm-dot.xg { background:#28c840; }
-.xterm-ttl { font-family:var(--font-mono); font-size:.72rem; color:#8b949e; flex:1; text-align:center; letter-spacing:.08em; }
-.xterm-out { font-family:var(--font-mono); font-size:.8rem; line-height:1.6; color:#c9d1d9; padding:.8rem 1rem; height:400px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; background:#0d1117; }
-.xterm-out::-webkit-scrollbar { width:4px; } .xterm-out::-webkit-scrollbar-thumb { background:#30363d; border-radius:2px; }
-.xterm-row { display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-top:1px solid #21262d; background:#161b22; border-radius:0 0 8px 8px; }
-.xterm-pr { font-family:var(--font-mono); font-size:.8rem; color:#3fb950; white-space:nowrap; }
-.xterm-inp { flex:1; background:transparent; border:none; outline:none; font-family:var(--font-mono); font-size:.8rem; color:#e6edf3; caret-color:#3fb950; }
-.xt-cmd { color:#e6edf3; } .xt-out { color:#8b949e; } .xt-err { color:#f85149; }
+.xterm-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.5rem; width:780px; max-width:95vw; }
+.xterm-title { font-family:var(--font-mono); font-size:.8rem; color:var(--cyan); letter-spacing:.12em; text-transform:uppercase; margin-bottom:1rem; }
+.xterm-out { font-family:var(--font-mono); font-size:.75rem; color:#7a9ab5; background:#060c10; border:1px solid var(--border); border-radius:4px; padding:.8rem; height:340px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; margin-bottom:.6rem; }
+.xterm-out::-webkit-scrollbar{width:4px;} .xterm-out::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.xterm-row { display:flex; align-items:center; gap:.5rem; background:#060c10; border:1px solid var(--border); border-radius:4px; padding:.5rem .8rem; margin-bottom:1rem; }
+.xterm-pr { font-family:var(--font-mono); font-size:.78rem; color:#00ff9f; white-space:nowrap; }
+.xterm-inp { flex:1; background:transparent; border:none; outline:none; font-family:var(--font-mono); font-size:.78rem; color:#c9d1d9; caret-color:#00ff9f; }
+.xt-cmd{color:#c9d1d9;} .xt-out{color:#7a9ab5;} .xt-err{color:#f85149;}
 </style>
 </head>
 <body>
@@ -626,18 +622,15 @@ button.btn-header { font-family: var(--font-mono); }
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
-  <div class="xterm-bar">
-    <span class="xterm-dot xr" onclick="xtClose()" title="Cerrar"></span>
-    <span class="xterm-dot xy"></span>
-    <span class="xterm-dot xg"></span>
-    <span class="xterm-ttl" id="xtTtl">pi@pi:~ $</span>
-  </div>
-  <div class="xterm-out" id="xtOut">EA3EIZ · Terminal · Panel Sistemas Digitales
-─────────────────────────────────────────────
+  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
+  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
 </div>
   <div class="xterm-row">
     <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
+  </div>
+  <div class="restore-btns">
+    <button class="restore-btn-cancel" onclick="xtClose()">✖ Cerrar</button>
   </div>
 </div>
 </div>
@@ -777,7 +770,6 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
         else if(t==='..'){var parts=xtCwd.split('/').filter(Boolean);parts.pop();xtCwd='/'+parts.join('/')||'/';}
         else xtCwd=xtCwd.replace(/\/$/,'')+'/'+t;
         document.getElementById('xtPr').textContent=xtPr();
-        document.getElementById('xtTtl').textContent=xtPr();
         return;
     }
     try{
