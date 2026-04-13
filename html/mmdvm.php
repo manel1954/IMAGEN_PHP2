@@ -298,9 +298,10 @@ if ($action === 'backup-configs') {
         '/home/pi/MMDVMHost/MMDVMHost.ini',
         '/home/pi/MMDVMHost/MMDVMYSF.ini',
         '/home/pi/MMDVMHost/MMDVMDSTAR.ini',
-        '/home/pi/MMDVMHost/MMDVMDNXDN.ini',
+        '/home/pi/MMDVMHost/MMDVMNXDN.ini',
         '/home/pi/Display-Driver/DisplayDriver.ini',
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
+        '/home/pi/DMRGateway/DMRGateway.ini',
         '/home/pi/DstarGateway/DstarGateway.ini',
         '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini',
         
