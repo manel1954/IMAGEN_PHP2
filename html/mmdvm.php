@@ -292,7 +292,7 @@ if ($action === 'install-display') {
 
 // ── Backup configuraciones ───────────────────────────────────────────
 if ($action === 'backup-configs') {
-    $zipName = 'Copia_A108.zip';
+    $zipName = 'Copia_PHP2.zip';
     $zipPath = '/tmp/' . $zipName;
     $files = [
         '/home/pi/MMDVMHost/MMDVMHost.ini',
@@ -917,7 +917,7 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="restoreModal" class="restore-modal">
 <div class="restore-box">
 <div class="restore-title">📂 Restaurar configuración</div>
-<label class="restore-label" for="restoreFile">Selecciona fichero Copia_A108.zip</label>
+<label class="restore-label" for="restoreFile">Selecciona fichero Copia_PHP2.zip</label>
 <input type="file" id="restoreFile" accept=".zip" class="restore-file">
 <div class="restore-btns">
 <button class="restore-btn-ok" onclick="doRestore()">▶ Restaurar</button>
