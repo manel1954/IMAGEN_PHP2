@@ -56,38 +56,38 @@ function formatFreq($hz) {
 }
 
 // ── Datos desde MMDVMHost.ini ────────────────────────────────────────
-if ($action === 'station-info') {
-    $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
-    $ini = parseMMDVMIni($iniPath);
+// if ($action === 'station-info') {
+//     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
+//     $ini = parseMMDVMIni($iniPath);
 
-    $callsign = $ini['General']['Callsign']    ?? 'EA3EIZ';
-    $dmrid    = $ini['General']['Id']          ?? '214317526';
-    $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
+//     $callsign = $ini['General']['Callsign']    ?? 'EA3EIZ';
+//     $dmrid    = $ini['General']['Id']          ?? '214317526';
+//     $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
 
-    $lat      = $ini['Info']['Latitude']    ?? '41.3851';
-    $lon      = $ini['Info']['Longitude']   ?? '2.1734';
-    $location = $ini['Info']['Location']    ?? 'Barcelona';
-    $desc     = $ini['Info']['Description'] ?? '';
+//     $lat      = $ini['Info']['Latitude']    ?? '41.3851';
+//     $lon      = $ini['Info']['Longitude']   ?? '2.1734';
+//     $location = $ini['Info']['Location']    ?? 'Barcelona';
+//     $desc     = $ini['Info']['Description'] ?? '';
 
-    $locator  = (floatval($lat) != 0 || floatval($lon) != 0)
-        ? latLonToLocator($lat, $lon)
-        : 'JN11CK';
+//     $locator  = (floatval($lat) != 0 || floatval($lon) != 0)
+//         ? latLonToLocator($lat, $lon)
+//         : 'JN11CK';
 
-    // Puerto del modem — [Modem] UARTPort=
-    $port = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
+//     // Puerto del modem — [Modem] UARTPort=
+//     $port = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
 
-    // Frecuencias RX y TX desde [Info]
-    $rxhz   = $ini['Info']['RXFrequency'] ?? '0';
-    $txhz   = $ini['Info']['TXFrequency'] ?? $txfreq;
-    $freqRX = formatFreq($rxhz);
-    $freq   = formatFreq($txhz);
+//     // Frecuencias RX y TX desde [Info]
+//     $rxhz   = $ini['Info']['RXFrequency'] ?? '0';
+//     $txhz   = $ini['Info']['TXFrequency'] ?? $txfreq;
+//     $freqRX = formatFreq($rxhz);
+//     $freq   = formatFreq($txhz);
 
-    // IP: primero Address del ini, si vacía o 0.0.0.0 usar IP real de la Pi
-    $iniIp = trim($ini['General']['Address'] ?? '');
-    if ($iniIp === '' || $iniIp === '0.0.0.0') {
-        $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
-    }
-    $ip = $iniIp ?: '—';
+//     // IP: primero Address del ini, si vacía o 0.0.0.0 usar IP real de la Pi
+//     $iniIp = trim($ini['General']['Address'] ?? '');
+//     if ($iniIp === '' || $iniIp === '0.0.0.0') {
+//         $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
+//     }
+//     $ip = $iniIp ?: '—';
 
     // ── Datos desde MMDVMYSF.ini ─────────────────────────────────
     $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
