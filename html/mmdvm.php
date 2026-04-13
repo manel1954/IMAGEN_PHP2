@@ -56,71 +56,71 @@ function formatFreq($hz) {
 }
 
 // ── Datos desde MMDVMHost.ini ────────────────────────────────────────
-// if ($action === 'station-info') {
-//     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
-//     $ini = parseMMDVMIni($iniPath);
+if ($action === 'station-info') {
+    $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
+    $ini = parseMMDVMIni($iniPath);
 
-//     $callsign = $ini['General']['Callsign']    ?? 'EA3EIZ';
-//     $dmrid    = $ini['General']['Id']          ?? '214317526';
-//     $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
+    $callsign = $ini['General']['Callsign']    ?? 'EA3EIZ';
+    $dmrid    = $ini['General']['Id']          ?? '214317526';
+    $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
 
-//     $lat      = $ini['Info']['Latitude']    ?? '41.3851';
-//     $lon      = $ini['Info']['Longitude']   ?? '2.1734';
-//     $location = $ini['Info']['Location']    ?? 'Barcelona';
-//     $desc     = $ini['Info']['Description'] ?? '';
+    $lat      = $ini['Info']['Latitude']    ?? '41.3851';
+    $lon      = $ini['Info']['Longitude']   ?? '2.1734';
+    $location = $ini['Info']['Location']    ?? 'Barcelona';
+    $desc     = $ini['Info']['Description'] ?? '';
 
-//     $locator  = (floatval($lat) != 0 || floatval($lon) != 0)
-//         ? latLonToLocator($lat, $lon)
-//         : 'JN11CK';
+    $locator  = (floatval($lat) != 0 || floatval($lon) != 0)
+        ? latLonToLocator($lat, $lon)
+        : 'JN11CK';
 
-//     // Puerto del modem — [Modem] UARTPort=
-//     $port = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
+    // Puerto del modem — [Modem] UARTPort=
+    $port = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
 
-//     // Frecuencias RX y TX desde [Info]
-//     $rxhz   = $ini['Info']['RXFrequency'] ?? '0';
-//     $txhz   = $ini['Info']['TXFrequency'] ?? $txfreq;
-//     $freqRX = formatFreq($rxhz);
-//     $freq   = formatFreq($txhz);
+    // Frecuencias RX y TX desde [Info]
+    $rxhz   = $ini['Info']['RXFrequency'] ?? '0';
+    $txhz   = $ini['Info']['TXFrequency'] ?? $txfreq;
+    $freqRX = formatFreq($rxhz);
+    $freq   = formatFreq($txhz);
 
-//     // IP: primero Address del ini, si vacía o 0.0.0.0 usar IP real de la Pi
-//     $iniIp = trim($ini['General']['Address'] ?? '');
-//     if ($iniIp === '' || $iniIp === '0.0.0.0') {
-//         $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
-//     }
-//     $ip = $iniIp ?: '—';
+    // IP: primero Address del ini, si vacía o 0.0.0.0 usar IP real de la Pi
+    $iniIp = trim($ini['General']['Address'] ?? '');
+    if ($iniIp === '' || $iniIp === '0.0.0.0') {
+        $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
+    }
+    $ip = $iniIp ?: '—';
 
     // ── Datos desde MMDVMYSF.ini ─────────────────────────────────
-//     $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
-//     $ysfIni = parseMMDVMIni($ysfIniPath);
+    $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
+    $ysfIni = parseMMDVMIni($ysfIniPath);
 
-//     $ysfPort   = $ysfIni['Modem']['UARTPort']      ?? ($ysfIni['modem']['UARTPort'] ?? '—');
-//     $ysfRxHz   = $ysfIni['Info']['RXFrequency']    ?? '0';
-//     $ysfTxHz   = $ysfIni['Info']['TXFrequency']    ?? '0';
-//     $ysfFreqRX = formatFreq($ysfRxHz);
-//     $ysfFreqTX = formatFreq($ysfTxHz);
-//     $ysfIpRaw  = trim($ysfIni['General']['Address'] ?? '');
-//     $ysfIp     = ($ysfIpRaw !== '' && $ysfIpRaw !== '0.0.0.0') ? $ysfIpRaw : $ip;
+    $ysfPort   = $ysfIni['Modem']['UARTPort']      ?? ($ysfIni['modem']['UARTPort'] ?? '—');
+    $ysfRxHz   = $ysfIni['Info']['RXFrequency']    ?? '0';
+    $ysfTxHz   = $ysfIni['Info']['TXFrequency']    ?? '0';
+    $ysfFreqRX = formatFreq($ysfRxHz);
+    $ysfFreqTX = formatFreq($ysfTxHz);
+    $ysfIpRaw  = trim($ysfIni['General']['Address'] ?? '');
+    $ysfIp     = ($ysfIpRaw !== '' && $ysfIpRaw !== '0.0.0.0') ? $ysfIpRaw : $ip;
 
-//     header('Content-Type: application/json');
-//     echo json_encode([
-//         'callsign'  => strtoupper(trim($callsign)),
-//         'dmrid'     => trim($dmrid),
-//         'freq'      => $freq,
-//         'freqRX'    => $freqRX,
-//         'port'      => $port ?: '—',
-//         'ip'        => $ip,
-//         'locator'   => $locator,
-//         'location'  => trim($location),
-//         'desc'      => trim($desc),
-//         'lat'       => $lat,
-//         'lon'       => $lon,
-//         'ysfPort'   => $ysfPort ?: '—',
-//         'ysfFreqRX' => $ysfFreqRX,
-//         'ysfFreqTX' => $ysfFreqTX,
-//         'ysfIp'     => $ysfIp ?: '—',
-//     ]);
-//     exit;
-// }
+    header('Content-Type: application/json');
+    echo json_encode([
+        'callsign'  => strtoupper(trim($callsign)),
+        'dmrid'     => trim($dmrid),
+        'freq'      => $freq,
+        'freqRX'    => $freqRX,
+        'port'      => $port ?: '—',
+        'ip'        => $ip,
+        'locator'   => $locator,
+        'location'  => trim($location),
+        'desc'      => trim($desc),
+        'lat'       => $lat,
+        'lon'       => $lon,
+        'ysfPort'   => $ysfPort ?: '—',
+        'ysfFreqRX' => $ysfFreqRX,
+        'ysfFreqTX' => $ysfFreqTX,
+        'ysfIp'     => $ysfIp ?: '—',
+    ]);
+    exit;
+}
 
 // ── System Info ──────────────────────────────────────────────────────
 if ($action === 'sysinfo') {
@@ -923,7 +923,7 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 
 <!-- Modal Instalar Display Driver -->
-<!-- <div id="installModal" class="install-modal">
+<div id="installModal" class="install-modal">
 <div class="install-box">
 <div class="install-title">⚙ Instalar Display Driver</div>
 <div id="installOutput" class="install-output"></div>
@@ -933,7 +933,7 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 <div id="installMsg" class="restore-msg"></div>
 </div>
-</div> -->
+</div>
 
 <script>
 let refreshTimer=null,txTimer=null,vuTimer=null,ysfTimer=null,mmdvmYsfTimer=null,ysfTxTimer=null,ysfVuTimer=null,dstarTimer=null;
