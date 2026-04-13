@@ -463,9 +463,11 @@ if ($action === 'ysf-transmission') {
 :root { --bg: #0a0e14; --surface: #111720; --border: #1e2d3d; --green: #00ff9f; --green-dim: #00cc7a; --red: #ff4560; --amber: #ffb300; --cyan: #00d4ff; --violet: #b57aff; --text: #a8b9cc; --text-dim: #4a5568; --font-mono: 'Share Tech Mono', monospace; --font-ui: 'Rajdhani', sans-serif; --font-orb: 'Orbitron', monospace; }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 1rem; min-height: 100vh; padding: 0; margin: 0; }
-.ctrl-header { border-bottom: 1px solid var(--border); padding: 1.2rem 2rem; display: flex; align-items: center; justify-content: center; gap: .8rem; background: var(--surface); flex-wrap: wrap; }
-.ctrl-header h1 { font-family: var(--font-ui); font-weight: 700; font-size: 1.5rem; letter-spacing: .08em; color: #e2eaf5; margin: 0; text-transform: uppercase; }
-.btn-header { font-family: var(--font-mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; background: transparent; border-radius: 4px; padding: .35rem .9rem; cursor: pointer; transition: background .2s; text-decoration: none; display: inline-block; }
+.ctrl-header { border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; flex-direction: column; align-items: center; gap: .6rem; background: var(--surface); }
+.ctrl-header-top { display: flex; align-items: center; gap: .8rem; }
+.ctrl-header-top h1 { font-family: var(--font-ui); font-weight: 700; font-size: 1.5rem; letter-spacing: .08em; color: #e2eaf5; margin: 0; text-transform: uppercase; }
+.ctrl-header-btns { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+.btn-header { font-family: var(--font-mono); font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; background: transparent; border-radius: 4px; padding: .28rem .75rem; cursor: pointer; transition: background .2s; text-decoration: none; display: inline-block; }
 .btn-header.cyan { color: var(--cyan); border: 1px solid var(--cyan); }
 .btn-header.cyan:hover { background: rgba(0,212,255,.1); }
 .btn-header.amber { color: var(--amber); border: 1px solid var(--amber); }
@@ -694,8 +696,11 @@ button.btn-header { font-family: var(--font-mono); }
 </head>
 <body>
 <header class="ctrl-header">
+<div class="ctrl-header-top">
 <img src="Logo_ea3eiz.png" alt="EA3EIZ" style="height:40px;width:auto;">
 <h1>PANEL SISTEMAS DIGITALES</h1>
+</div>
+<div class="ctrl-header-btns">
 <a href="edit_ini.php?file=displaydriver" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
 <a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
 <button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
@@ -708,6 +713,7 @@ button.btn-header { font-family: var(--font-mono); }
   </div>
 </div>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+</div>
 </header>
 <main class="ctrl-body">
 
