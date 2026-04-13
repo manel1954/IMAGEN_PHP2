@@ -180,7 +180,7 @@ if ($action === 'stop') {
 
 // ── Actualizaciones ──────────────────────────────────────────────────
 if ($action === 'update-imagen') {
-    $output = shell_exec('sudo sh /home/pi/A108/Actualiza_imagen.sh 2>&1');
+    $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1');
     header('Content-Type: application/json');
     echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
     exit;
