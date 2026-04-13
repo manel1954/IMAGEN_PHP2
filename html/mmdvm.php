@@ -657,7 +657,7 @@ button.btn-header { font-family: var(--font-mono); }
 <header class="ctrl-header">
 <img src="Logo_ea3eiz.png" alt="EA3EIZ" style="height:40px;width:auto;">
 <h1>PANEL SISTEMAS DIGITALES</h1>
-<a href="edit_ini.php?file=displaydriver" target="_blank" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
+<a href="edit_ini.php?file=displaydriver" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
 <a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
 <button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
@@ -682,17 +682,14 @@ button.btn-header { font-family: var(--font-mono); }
 
 <div class="status-bar">
 <div class="status-item"><div class="dot" id="dot-mosquitto"></div><span>Mosquitto</span></div>
-<div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
 <div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
-
+<div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
 <div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
 <div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
-
+<div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
 <div class="section-divider"></div>
+<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGW</span></div>
 <div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
-<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGateway</span></div>
-
 </div>
 
 <div class="controls-section">
@@ -711,12 +708,12 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
     <div class="auto-badge" id="autoRefreshBadge" style="display:none"><div class="dot-sm"></div> auto-refresh 3s</div>
     <div class="service-card-btns">
-      <a href="mmdvm_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:var(--cyan);border-color:rgba(0,212,255,.3);">⚙ MMDVMHOST Config</a>
-      <a href="dmrgateway_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;">⚙ DMRGateway Config</a>
+      <a href="mmdvm_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:var(--cyan);border-color:rgba(0,212,255,.3);">⚙ MMDVMHOST Config</a>
+      <a href="dmrgateway_config.php" class="ini-btn edit" style="flex:1;justify-content:center;">⚙ DMRGateway Config</a>
     </div>
     <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="edit_ini.php?file=mmdvm" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;">📄 EDITAR FICHERO MMDVMHOST.ini</a>
-      <a href="edit_ini.php?file=dmrgateway" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:var(--amber);border-color:rgba(255,179,0,.3);">📄 EDITAR FICHERO DMRGateway.ini</a>
+      <a href="edit_ini.php?file=mmdvm" class="ini-btn view" style="flex:1;justify-content:center;">📄 EDITAR FICHERO MMDVMHOST.ini</a>
+      <a href="edit_ini.php?file=dmrgateway" class="ini-btn view" style="flex:1;justify-content:center;color:var(--amber);border-color:rgba(255,179,0,.3);">📄 EDITAR FICHERO DMRGateway.ini</a>
     </div>
   </div>
 
@@ -735,12 +732,12 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
     <div class="auto-badge ysf" id="ysfRefreshBadge" style="display:none"><div class="dot-sm"></div> C4FM activo</div>
     <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="mmdvmysf_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#26c6da;border-color:rgba(38,198,218,.3);">⚙ MMDVMYSF CONFIG</a>
-      <a href="ysfgateway_config.php" target="_blank" class="ini-btn edit ysf" style="flex:1;justify-content:center;">⚙ YSFGATEWAY CONFIG</a>
+      <a href="mmdvmysf_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#26c6da;border-color:rgba(38,198,218,.3);">⚙ MMDVMYSF CONFIG</a>
+      <a href="ysfgateway_config.php" class="ini-btn edit ysf" style="flex:1;justify-content:center;">⚙ YSFGATEWAY CONFIG</a>
     </div>
     <div class="service-card-btns">
-      <a href="edit_ini.php?file=mmdvmysf" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#80deea;border-color:rgba(38,198,218,.2);">📄 editar fichero MMDVMYSF.ini</a>
-      <a href="edit_ini.php?file=ysfgateway" target="_blank" class="ini-btn view ysf" style="flex:1;justify-content:center;">📄 editar fichero YSFGateway.ini</a>
+      <a href="edit_ini.php?file=mmdvmysf" class="ini-btn view" style="flex:1;justify-content:center;color:#80deea;border-color:rgba(38,198,218,.2);">📄 editar fichero MMDVMYSF.ini</a>
+      <a href="edit_ini.php?file=ysfgateway" class="ini-btn view ysf" style="flex:1;justify-content:center;">📄 editar fichero YSFGateway.ini</a>
     </div>
   </div>
 
@@ -759,12 +756,12 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
     <div class="auto-badge" id="dstarRefreshBadge" style="display:none;color:#00e5ff;"><div class="dot-sm" style="background:#00e5ff;"></div> D-STAR activo</div>
     <div class="service-card-btns" style="margin-top:.6rem;">
-      <a href="mmdvmdstar_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">⚙ MMDVMDSTAR CONFIG</a>
-      <a href="dstargateway_config.php" target="_blank" class="ini-btn edit" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">⚙ DSTARGATEWAY CONFIG</a>
+      <a href="mmdvmdstar_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">⚙ MMDVMDSTAR CONFIG</a>
+      <a href="dstargateway_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">⚙ DSTARGATEWAY CONFIG</a>
     </div>
     <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="edit_ini.php?file=mmdvmdstar" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero MMDVMDSTAR.ini</a>
-      <a href="edit_ini.php?file=dstargateway" target="_blank" class="ini-btn view" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">📄 editar fichero DStarGateway.ini</a>
+      <a href="edit_ini.php?file=mmdvmdstar" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero MMDVMDSTAR.ini</a>
+      <a href="edit_ini.php?file=dstargateway" class="ini-btn view" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">📄 editar fichero DStarGateway.ini</a>
     </div>
   </div>
 </div>
