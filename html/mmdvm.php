@@ -649,7 +649,7 @@ button.btn-header { font-family: var(--font-mono); }
   </div>
 </div>
 
-<!-- ── Últimos escuchados lado a lado ── -->
+<!-- ── Últimos escuchados DMR ── -->
 <div class="display-row" style="margin-top:1rem;">
   <div id="dmrLastHeardPanel">
     <div class="panel-label">▸ Últimos escuchados DMR</div>
@@ -658,16 +658,9 @@ button.btn-header { font-family: var(--font-mono); }
       <div class="lh-body" id="lhBody"><div class="lh-empty">Sin actividad reciente</div></div>
     </div>
   </div>
-  <div id="ysfLastHeardPanel">
-    <div class="panel-label ysf-label">▸ Últimos escuchados C4FM</div>
-    <div class="lh-panel-ysf">
-      <div class="lh-header-ysf"><span>Indicativo</span><span>Nombre</span><span>Hora</span><span>Src</span></div>
-      <div class="lh-body" id="ysfLhBody"><div class="lh-empty">Sin actividad C4FM</div></div>
-    </div>
-  </div>
 </div>
 
-<!-- ── Últimos escuchados D-STAR ── -->
+<!-- ── Últimos escuchados D-STAR (izq) + C4FM (dcha) ── -->
 <div class="display-row" style="margin-top:1rem;">
   <div id="dstarLastHeardPanel" style="display:none;">
     <div class="panel-label" style="color:#00e5ff;">▸ Últimos escuchados D-STAR</div>
@@ -676,6 +669,13 @@ button.btn-header { font-family: var(--font-mono); }
         <span>Indicativo</span><span>Nombre</span><span>Hora</span><span>Src</span>
       </div>
       <div class="lh-body" id="dstarLhBody"><div class="lh-empty">Sin actividad D-STAR</div></div>
+    </div>
+  </div>
+  <div id="ysfLastHeardPanel">
+    <div class="panel-label ysf-label">▸ Últimos escuchados C4FM</div>
+    <div class="lh-panel-ysf">
+      <div class="lh-header-ysf"><span>Indicativo</span><span>Nombre</span><span>Hora</span><span>Src</span></div>
+      <div class="lh-body" id="ysfLhBody"><div class="lh-empty">Sin actividad C4FM</div></div>
     </div>
   </div>
 </div>
