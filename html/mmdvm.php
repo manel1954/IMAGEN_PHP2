@@ -1114,7 +1114,9 @@ async function runUpdate(type){
     con.textContent='⏳ Ejecutando, espera…';
     document.getElementById('updateCloseBtn').disabled=true;
     document.getElementById('updateModal').classList.add('open');
-    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;}
+    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;
+        if(type==='imagen')setTimeout(closeUpdate,2000);
+    }
     catch(e){con.textContent='✖ Error de red: '+e.message;}
     finally{document.getElementById('updateCloseBtn').disabled=false;}
 }
