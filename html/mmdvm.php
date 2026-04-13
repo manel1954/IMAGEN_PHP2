@@ -297,9 +297,13 @@ if ($action === 'backup-configs') {
     $files = [
         '/home/pi/MMDVMHost/MMDVMHost.ini',
         '/home/pi/MMDVMHost/MMDVMYSF.ini',
+        '/home/pi/MMDVMHost/MMDVMDSTAR.ini',
+        '/home/pi/MMDVMHost/MMDVMDNXDN.ini',
         '/home/pi/Display-Driver/DisplayDriver.ini',
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
-        '/home/pi/DMRGateway/DMRGateway.ini',
+        '/home/pi/DstarGateway/DstarGateway.ini',
+        '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini',
+        
     ];
     $fileList = implode(' ', array_map('escapeshellarg', $files));
     shell_exec("zip -j " . escapeshellarg($zipPath) . " {$fileList} 2>/dev/null");
