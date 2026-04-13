@@ -6,12 +6,12 @@ $INI_PATH = '/home/pi/DMRGateway/DMRGateway.ini';
 
 // ── Campos editables por sección ─────────────────────────────────────────────
 $SECTIONS = [
-    'General' => [
-        ['key' => 'Callsign',    'label' => 'Indicativo',           'type' => 'str'],
-        ['key' => 'Id',          'label' => 'DMR ID',               'type' => 'int'],
-        ['key' => 'Timeout',     'label' => 'Timeout (s)',          'type' => 'int'],
-        ['key' => 'Daemon',      'label' => 'Daemon (0/1)',         'type' => 'int'],
-    ],
+    // 'General' => [
+    //     ['key' => 'Callsign',    'label' => 'Indicativo',           'type' => 'str'],
+    //     ['key' => 'Id',          'label' => 'DMR ID',               'type' => 'int'],
+    //     ['key' => 'Timeout',     'label' => 'Timeout (s)',          'type' => 'int'],
+    //     ['key' => 'Daemon',      'label' => 'Daemon (0/1)',         'type' => 'int'],
+    // ],
     'Info' => [
         ['key' => 'RXFrequency', 'label' => 'Frecuencia RX (Hz)',  'type' => 'int'],
         ['key' => 'TXFrequency', 'label' => 'Frecuencia TX (Hz)',  'type' => 'int'],
