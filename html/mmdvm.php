@@ -302,7 +302,7 @@ if ($action === 'backup-configs') {
         '/home/pi/Display-Driver/DisplayDriver.ini',
         '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
         '/home/pi/DMRGateway/DMRGateway.ini',
-        '/home/pi/DstarGateway/DstarGateway.ini',
+        '/home/pi/DStarGateway/DStarGateway.ini',
         '/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini',
         
     ];
