@@ -178,27 +178,6 @@ if ($action === 'stop') {
     exit;
 }
 
-// ── Terminal ──────────────────────────────────────────────────────────
-if ($action === 'terminal') {
-    $cmd = $_POST['cmd'] ?? '';
-    if ($cmd === '') { header('Content-Type: application/json'); echo json_encode(['output'=>'','cwd'=>'/home/pi']); exit; }
-    session_start();
-    $cwd = $_SESSION['term_cwd'] ?? '/home/pi';
-    if (!is_dir($cwd)) $cwd = '/home/pi';
-    if (preg_match('/^\s*cd\s*(.*)\s*$/', $cmd, $m)) {
-        $target = trim($m[1]);
-        if ($target === '' || $target === '~') $target = '/home/pi';
-        $newDir = realpath($cwd . '/' . $target) ?: realpath($target) ?: $cwd;
-        if (is_dir($newDir)) { $_SESSION['term_cwd'] = $newDir; $cwd = $newDir; $out = ''; }
-        else { $out = "bash: cd: {$target}: No such file or directory\n"; }
-    } else {
-        $out = shell_exec("cd " . escapeshellarg($cwd) . " && " . $cmd . " 2>&1") ?? '';
-    }
-    header('Content-Type: application/json');
-    echo json_encode(['output' => htmlspecialchars($out), 'cwd' => $cwd]);
-    exit;
-}
-
 // ── Actualizaciones ──────────────────────────────────────────────────
 if ($action === 'update-imagen') {
     $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1');
@@ -695,28 +674,6 @@ button.btn-header { font-family: var(--font-mono); }
 .install-output { font-family: var(--font-mono); font-size: .72rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; display: none; }
 .install-output.visible { display: block; }
 
-/* ── Modal Terminal ───────────────────────────────────────────────── */
-.terminal-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9600; align-items: center; justify-content: center; }
-.terminal-modal.open { display: flex; }
-.terminal-box { background: #0a0e14; border: 1px solid var(--green); border-radius: 8px; width: 820px; max-width: 96vw; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,255,159,.15); }
-.terminal-titlebar { background: #111720; border-bottom: 1px solid #1e2d3d; padding: .5rem 1rem; display: flex; align-items: center; gap: .6rem; border-radius: 8px 8px 0 0; }
-.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-.terminal-dot.red { background: #ff5f57; }
-.terminal-dot.yellow { background: #febc2e; }
-.terminal-dot.green-dot { background: #28c840; }
-.terminal-title { font-family: var(--font-mono); font-size: .75rem; color: var(--text-dim); letter-spacing: .1em; margin-left: .4rem; flex: 1; }
-.terminal-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1rem; padding: 0; transition: color .2s; }
-.terminal-close:hover { color: var(--red); }
-.terminal-output { flex: 1; font-family: var(--font-mono); font-size: .8rem; line-height: 1.6; color: var(--green); padding: .8rem 1rem; overflow-y: auto; min-height: 300px; max-height: 460px; white-space: pre-wrap; word-break: break-all; }
-.terminal-output::-webkit-scrollbar { width: 4px; }
-.terminal-output::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 2px; }
-.terminal-input-row { display: flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-top: 1px solid #1e2d3d; background: #0d1218; border-radius: 0 0 8px 8px; }
-.terminal-prompt { font-family: var(--font-mono); font-size: .8rem; color: var(--green); white-space: nowrap; }
-.terminal-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--font-mono); font-size: .8rem; color: #fff; caret-color: var(--green); }
-.term-cmd { color: #fff; }
-.term-out { color: #7a9ab5; }
-.term-err { color: var(--red); }
-
 /* ── Dropdown actualizaciones ─────────────────────────────────── */
 .dropdown-wrap { position: relative; display: inline-block; }
 .dropdown-menu-custom { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 220px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; padding-top: .4rem; }
@@ -756,7 +713,6 @@ button.btn-header { font-family: var(--font-mono); }
   </div>
 </div>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
-<button class="btn-header cyan" onclick="openTerminal()">⌨ Terminal</button>
 </div>
 </header>
 <main class="ctrl-body">
@@ -778,14 +734,17 @@ button.btn-header { font-family: var(--font-mono); }
 
 <div class="status-bar">
 <div class="status-item"><div class="dot" id="dot-mosquitto"></div><span>Mosquitto</span></div>
-<div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
 <div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
+<div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
+
 <div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
 <div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
+<div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
+
 <div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGW</span></div>
 <div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
+<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGateway</span></div>
+
 </div>
 
 <div class="controls-section">
@@ -946,26 +905,6 @@ button.btn-header { font-family: var(--font-mono); }
 <div class="restore-btns">
 <button class="restore-btn-cancel" id="updateCloseBtn" onclick="closeUpdate()">✖ Cerrar</button>
 </div>
-</div>
-</div>
-
-<!-- Modal Terminal -->
-<div id="terminalModal" class="terminal-modal">
-<div class="terminal-box">
-  <div class="terminal-titlebar">
-    <span class="terminal-dot red"></span>
-    <span class="terminal-dot yellow"></span>
-    <span class="terminal-dot green-dot"></span>
-    <span class="terminal-title" id="termPromptTitle">pi@raspberrypi ~ $</span>
-    <button class="terminal-close" onclick="closeTerminal()">✕</button>
-  </div>
-  <div class="terminal-output" id="termOutput">EA3EIZ · Panel Sistemas Digitales · Terminal
-────────────────────────────────────────────
-</div>
-  <div class="terminal-input-row">
-    <span class="terminal-prompt" id="termPrompt">pi@pi:~$</span>
-    <input type="text" class="terminal-input" id="termInput" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
-  </div>
 </div>
 </div>
 
@@ -1172,42 +1111,7 @@ function stopDStarLogs(){clearInterval(dstarTimer);dstarTimer=null;}
 async function toggleServices(chk){const wasOn=!chk.checked;const sw=document.getElementById('swDMR');chk.checked=wasOn;sw.classList.add('busy');try{await fetch(wasOn?'?action=stop':'?action=start');await new Promise(r=>setTimeout(r,2200));const r=await fetch('?action=status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';running=gw||mmd;setDot('dot-gateway',gw?'active':'off');setDot('dot-mmdvm',mmd?'active':'off');setDot('dot-mosquitto',gw?'active':'off');setDMRToggle(running);if(wasOn){stopRefresh();clearLog('logGw');clearLog('logMmd');showIdle();document.getElementById('lhBody').innerHTML='<div class="lh-empty">Sin actividad reciente</div>';}else startRefresh();}finally{sw.classList.remove('busy');}}
 async function toggleYSF(chk){const wasOn=!chk.checked;const sw=document.getElementById('swYSF');chk.checked=wasOn;sw.classList.add('busy');try{if(wasOn){await fetch('?action=ysf-stop');await new Promise(r=>setTimeout(r,1000));await fetch('?action=mmdvmysf-stop');await new Promise(r=>setTimeout(r,2000));clearLog('logYsf');clearLog('logMmdvmYsf');stopYSFLogs();stopMMDVMYSFLogs();showYSFIdle();document.getElementById('ysfLhBody').innerHTML='<div class="lh-empty">Sin actividad C4FM</div>';}else{await fetch('?action=mmdvmysf-start');await new Promise(r=>setTimeout(r,2000));await fetch('?action=ysf-start');await new Promise(r=>setTimeout(r,1500));startYSFLogs();startMMDVMYSFLogs();}await checkYSFStatus();await checkMMDVMYSFStatus();}finally{sw.classList.remove('busy');}}
 
-function openTerminal(){document.getElementById('terminalModal').classList.add('open');document.getElementById('termInput').focus();}
-function closeTerminal(){document.getElementById('terminalModal').classList.remove('open');}
-
-let termCwd='/home/pi';
-const termHistory=[];let termHistIdx=-1;
-
-document.addEventListener('DOMContentLoaded',()=>{
-    const input=document.getElementById('termInput');
-    input.addEventListener('keydown', async e=>{
-        if(e.key==='Enter'){
-            const cmd=input.value.trim();
-            if(!cmd){return;}
-            termHistory.unshift(cmd);termHistIdx=-1;
-            appendTerm('<span class="term-cmd">'+escTerm(termPrompt())+' '+escTerm(cmd)+'</span>');
-            input.value='';
-            try{
-                const r=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent(cmd)});
-                const d=await r.json();
-                termCwd=d.cwd||termCwd;
-                updatePrompt();
-                if(d.output)appendTerm('<span class="term-out">'+d.output+'</span>');
-            }catch(err){appendTerm('<span class="term-err">Error: '+escTerm(err.message)+'</span>');}
-        }
-        if(e.key==='ArrowUp'){e.preventDefault();if(termHistIdx<termHistory.length-1){termHistIdx++;input.value=termHistory[termHistIdx]||'';}}
-        if(e.key==='ArrowDown'){e.preventDefault();if(termHistIdx>0){termHistIdx--;input.value=termHistory[termHistIdx]||'';}else{termHistIdx=-1;input.value='';}}
-        if(e.key==='Escape'){closeTerminal();}
-    });
-    document.getElementById('terminalModal').addEventListener('click',e=>{
-        if(e.target===document.getElementById('terminalModal'))closeTerminal();
-    });
-});
-
-function termPrompt(){const parts=termCwd.replace('/home/pi','~');return 'pi@pi:'+parts+'$';}
-function updatePrompt(){const p=termPrompt();document.getElementById('termPrompt').textContent=p;document.getElementById('termPromptTitle').textContent=p;}
-function appendTerm(html){const out=document.getElementById('termOutput');out.innerHTML+=html+'\n';out.scrollTop=out.scrollHeight;}
-function escTerm(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}document.getElementById('dropActualizaciones').classList.toggle('open');}
+function toggleDropdown(e){e.stopPropagation();document.getElementById('dropActualizaciones').classList.toggle('open');}
 document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
 function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
 const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
