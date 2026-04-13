@@ -529,8 +529,9 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 <button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
+<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+
 </div>
 </header>
 <main class="ctrl-body">
@@ -699,10 +700,10 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
   <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
-  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
+  <div class="xterm-out" id="xtOut">pi@raspberry:~$ Terminal lista
 </div>
   <div class="xterm-row">
-    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
+    <span class="xterm-pr" id="xtPr">pi@raspberry:~$</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
   </div>
   <div class="restore-btns">

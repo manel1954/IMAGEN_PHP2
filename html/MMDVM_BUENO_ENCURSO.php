@@ -230,8 +230,16 @@ if ($action === 'dstar-transmission') {
         if (preg_match('/received (RF|network) header from\s+([A-Z0-9\/]+)/i', $line, $m)) { $active = true; $source = strtoupper($m[1]); $callsign = strtoupper(trim($m[2])); break; }
     }
     if ($callsign) { $info = lookupCall(preg_replace('/\/.*$/', '', $callsign)); $name = $info['name']; }
+    // Últimos escuchados DStar
+    $lastHeard = []; $seen = [];
+    foreach ($lines as $line) {
+        $cs = ''; $src = ''; $time = '';
+        if (preg_match('/(\d{2}:\d{2}:\d{2}).*D-Star.*received (RF|network).*from\s+([A-Z0-9\/]+)/i', $line, $m)) { $time=$m[1]; $src=strtoupper($m[2]); $cs=strtoupper(trim($m[3])); }
+        elseif (preg_match('/(\d{2}:\d{2}:\d{2}).*received (RF|network) header from\s+([A-Z0-9\/]+)/i', $line, $m)) { $time=$m[1]; $src=strtoupper($m[2]); $cs=strtoupper(trim($m[3])); }
+        if ($cs && !in_array($cs, $seen)) { $inf = lookupCall(preg_replace('/\/.*$/','',$cs)); $lastHeard[] = ['callsign'=>$cs,'name'=>$inf['name'],'source'=>$src,'time'=>$time]; $seen[] = $cs; if (count($lastHeard) >= 5) break; }
+    }
     header('Content-Type: application/json');
-    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'source'=>$source]);
+    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'source'=>$source,'lastHeard'=>$lastHeard]);
     exit;
 }
 
@@ -641,13 +649,26 @@ button.btn-header { font-family: var(--font-mono); }
   </div>
 </div>
 
-<!-- ── Últimos escuchados lado a lado ── -->
+<!-- ── Últimos escuchados DMR ── -->
 <div class="display-row" style="margin-top:1rem;">
   <div id="dmrLastHeardPanel">
     <div class="panel-label">▸ Últimos escuchados DMR</div>
     <div class="lh-panel">
       <div class="lh-header"><span>Indicativo</span><span>Nombre</span><span>TG</span><span>Hora</span><span>Src</span></div>
       <div class="lh-body" id="lhBody"><div class="lh-empty">Sin actividad reciente</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Últimos escuchados D-STAR (izq) + C4FM (dcha) ── -->
+<div class="display-row" style="margin-top:1rem;">
+  <div id="dstarLastHeardPanel" style="display:none;">
+    <div class="panel-label" style="color:#00e5ff;">▸ Últimos escuchados D-STAR</div>
+    <div class="lh-panel" style="border-color:#004a4a;">
+      <div class="lh-header" style="background:#0a1a1a;border-bottom-color:#004a4a;color:#006070;">
+        <span>Indicativo</span><span>Nombre</span><span>Hora</span><span>Src</span>
+      </div>
+      <div class="lh-body" id="dstarLhBody"><div class="lh-empty">Sin actividad D-STAR</div></div>
     </div>
   </div>
   <div id="ysfLastHeardPanel">
@@ -764,7 +785,7 @@ async function checkYSFStatus(){try{const r=await fetch('?action=ysf-status');co
 async function checkMMDVMYSFStatus(){try{const r=await fetch('?action=mmdvmysf-status');const d=await r.json();mmdvmYsfRunning=d.mmdvmysf==='active';setDot('dot-mmdvmysf',mmdvmYsfRunning?'active':'off');setYSFToggle(ysfRunning||mmdvmYsfRunning);}catch(e){}}
 function setDot(id,state){document.getElementById(id).className='dot'+(state==='active'?' active':state==='error'?' error':'');}
 
-function setDSTARToggle(on){const chk=document.getElementById('chkDSTAR'),lbl=document.getElementById('dstarToggleLabel'),sta=document.getElementById('dstarToggleStatus');chk.checked=on;lbl.style.color=on?'#00e5ff':'';sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('dstarRefreshBadge').style.display=on?'flex':'none';document.getElementById('dstarPanelMmd').style.display=on?'':'none';document.getElementById('dstarPanelGw').style.display=on?'':'none';document.getElementById('dstarDisplayPanel').style.display=on?'':'none';}
+function setDSTARToggle(on){const chk=document.getElementById('chkDSTAR'),lbl=document.getElementById('dstarToggleLabel'),sta=document.getElementById('dstarToggleStatus');chk.checked=on;lbl.style.color=on?'#00e5ff':'';sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('dstarRefreshBadge').style.display=on?'flex':'none';document.getElementById('dstarPanelMmd').style.display=on?'':'none';document.getElementById('dstarPanelGw').style.display=on?'':'none';document.getElementById('dstarDisplayPanel').style.display=on?'':'none';document.getElementById('dstarLastHeardPanel').style.display=on?'':'none';}
 
 let dstarVuTimer=null,dstarCurrentlyActive=false,dstarTxTimer2=null;
 function buildDStarVU(){['dstarVuLeft','dstarVuRight'].forEach(id=>{const el=document.getElementById(id);for(let i=0;i<18;i++){const d=document.createElement('div');d.className='nx-vu-bar';d.id=`${id}-${i}`;el.appendChild(d);}});}
@@ -774,7 +795,8 @@ function showDStarIdle(){dstarCurrentlyActive=false;animateDStarVU(false);docume
 function showDStarActive(d){dstarCurrentlyActive=true;animateDStarVU(true);document.getElementById('dstarTxBar').className='nx-txbar active';document.getElementById('dstarTxBar').style.background='linear-gradient(90deg,transparent,#00e5ff,transparent)';const src=document.getElementById('dstarSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else{src.textContent='NET';src.className='nx-source net';}const flag=getFlagByCall(d.callsign.replace(/\/.*$/,''));document.getElementById('dstarNxCenter').innerHTML=`<div class="nx-callsign dstar">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name dstar">${esc(d.name)}</div>`:'');}
 function updateDStarClock(){if(!dstarCurrentlyActive){const now=new Date();const clk=document.getElementById('dstarNxClock');if(clk){clk.textContent=now.toLocaleTimeString('es-ES');document.getElementById('dstarNxDate').textContent=now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();}}}
 setInterval(updateDStarClock,1000);updateDStarClock();
-async function fetchDStarTransmission(){try{const r=await fetch('?action=dstar-transmission');const d=await r.json();if(d.active)showDStarActive(d);else showDStarIdle();}catch(e){}}
+function renderDStarLastHeard(list,activeCall){const body=document.getElementById('dstarLhBody');if(!list||list.length===0){body.innerHTML='<div class="lh-empty">Sin actividad D-STAR</div>';return;}body.innerHTML=list.map(r=>{const isActive=activeCall&&r.callsign===activeCall;const srcCls=r.source==='RF'?'rf':'net',srcLbl=r.source==='RF'?'RF':'NET';const dot=isActive?'<span class="lh-tx-dot" style="background:#00e5ff;box-shadow:0 0 6px #00e5ff;"></span>':'';const flag=getFlagByCall(r.callsign.replace(/\/.*$/,''));return`<div class="lh-row${isActive?' lh-active':''}"><div class="lh-call-wrap">${dot}<span class="lh-call" style="color:#00e5ff;">${flag} ${esc(r.callsign)}</span></div><span class="lh-name">${esc(r.name||'—')}</span><span class="lh-time">${esc(r.time||'—')}</span><span class="lh-src ${srcCls}">${srcLbl}</span></div>`;}).join('');}
+async function fetchDStarTransmission(){try{const r=await fetch('?action=dstar-transmission');const d=await r.json();if(d.active)showDStarActive(d);else showDStarIdle();renderDStarLastHeard(d.lastHeard||[],d.active?d.callsign:null);}catch(e){}}
 function startDStarTransmissionPoll(){fetchDStarTransmission();dstarTxTimer2=setInterval(fetchDStarTransmission,4000);}
 function stopDStarTransmissionPoll(){clearInterval(dstarTxTimer2);dstarTxTimer2=null;}
 async function checkDStarStatus(){try{const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=(gw||mmd)&&!d.stopped;setDSTARToggle(dstarRunning);if(dstarRunning){startDStarLogs();startDStarTransmissionPoll();}}catch(e){}}
