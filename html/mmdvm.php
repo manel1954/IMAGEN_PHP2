@@ -221,9 +221,9 @@ if ($action === 'update-ysf') {
 
 // ── Terminal ──────────────────────────────────────────────────────────
 if ($action === 'terminal') {
-    session_start();
     $cmd = $_POST['cmd'] ?? '';
     if ($cmd === '') { header('Content-Type: application/json'); echo json_encode(['output'=>'','cwd'=>'/home/pi']); exit; }
+    if (session_status() === PHP_SESSION_NONE) session_start();
     $cwd = $_SESSION['term_cwd'] ?? '/home/pi';
     if (!is_dir($cwd)) $cwd = '/home/pi';
     if (preg_match('/^\s*cd\s*(.*)\s*$/', $cmd, $m)) {
@@ -956,13 +956,13 @@ button.btn-header { font-family: var(--font-mono); }
 <!-- ── Logs ── -->
 <div class="log-grid" style="margin-top:2rem;">
 <!-- ▼▼▼ PANELES DMR — se ocultan cuando DMR está OFF ▼▼▼ -->
-<div id="dmrLogPanels" style="display:contents;">
+<div id="dmrLogPanels" style="display:none;">
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name">▸ MMDVMHost</span><button class="btn-clear" onclick="clearLog('logMmd')">limpiar</button></div><div class="log-output" id="logMmd">Esperando servicios…</div></div>
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name gw">▸ DMRGateway</span><button class="btn-clear" onclick="clearLog('logGw')">limpiar</button></div><div class="log-output" id="logGw">Esperando servicios…</div></div>
 </div>
 <!-- ▲▲▲ FIN PANELES DMR ▲▲▲ -->
 <!-- ▼▼▼ PANELES YSF — se ocultan cuando C4FM está OFF ▼▼▼ -->
-<div id="ysfLogPanels" style="display:contents;">
+<div id="ysfLogPanels" style="display:none;">
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#26c6da">▸ MMDVMHost YSF</span><button class="btn-clear" onclick="clearLog('logMmdvmYsf')">limpiar</button></div><div class="log-output" id="logMmdvmYsf">Esperando MMDVMHost YSF…</div></div>
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name ysf">▸ YSFGateway</span><button class="btn-clear" onclick="clearLog('logYsf')">limpiar</button></div><div class="log-output" id="logYsf">Esperando YSFGateway…</div></div>
 </div>
@@ -1259,3 +1259,91 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('terminalModal').addEventListener('click',e=>{
         if(e.target===document.getElementById('terminalModal'))closeTerminal();
     });
+});
+
+function termPrompt(){const parts=termCwd.replace('/home/pi','~');return 'pi@pi:'+parts+'$';}
+function updatePrompt(){const p=termPrompt();document.getElementById('termPrompt').textContent=p;document.getElementById('termPromptTitle').textContent=p;}
+function appendTerm(html){const out=document.getElementById('termOutput');out.innerHTML+=html+'\n';out.scrollTop=out.scrollHeight;}
+function escTerm(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}document.getElementById('dropActualizaciones').classList.toggle('open');}
+document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
+function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
+const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
+const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
+async function runUpdate(type){
+    document.getElementById('dropActualizaciones').classList.remove('open');
+    document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];
+    const con=document.getElementById('updateConsole');
+    con.textContent='⏳ Ejecutando, espera…';
+    document.getElementById('updateCloseBtn').disabled=true;
+    document.getElementById('updateModal').classList.add('open');
+    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;
+        if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);
+    }
+    catch(e){con.textContent='✖ Error de red: '+e.message;}
+    finally{document.getElementById('updateCloseBtn').disabled=false;}
+}
+// ── Terminal ─────────────────────────────────────────────────────────
+let termCwd='/home/pi',termHist=[],termHidx=-1;
+function openTerminal(){document.getElementById('termModal').classList.add('open');setTimeout(()=>document.getElementById('termIn').focus(),100);}
+function closeTerminal(){document.getElementById('termModal').classList.remove('open');}
+function termPromptStr(){return 'pi@pi:'+termCwd.replace('/home/pi','~')+'$';}
+function updateTermPrompt(){const p=termPromptStr();document.getElementById('termPr').textContent=p;document.getElementById('termTitle').textContent=p;}
+function appendTerm(html){const o=document.getElementById('termOut');o.innerHTML+=html+'\n';o.scrollTop=o.scrollHeight;}
+function escT(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function initTerminal(){
+    const inp=document.getElementById('termIn');
+    if(!inp)return;
+    inp.addEventListener('keydown',async e=>{
+        if(e.key==='Enter'){
+            const cmd=inp.value.trim();if(!cmd)return;
+            termHist.unshift(cmd);termHidx=-1;inp.value='';
+            appendTerm('<span class="term-cmd-line">'+escT(termPromptStr())+' '+escT(cmd)+'</span>');
+            try{
+                const r=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent(cmd)});
+                const d=await r.json();
+                if(d.cwd){termCwd=d.cwd;updateTermPrompt();}
+                if(d.output)appendTerm('<span class="term-out-line">'+d.output+'</span>');
+            }catch(err){appendTerm('<span class="term-err-line">Error: '+escT(err.message)+'</span>');}
+        }
+        if(e.key==='ArrowUp'){e.preventDefault();if(termHidx<termHist.length-1){termHidx++;inp.value=termHist[termHidx]||'';}}
+        if(e.key==='ArrowDown'){e.preventDefault();termHidx>0?inp.value=termHist[--termHidx]:(termHidx=-1,inp.value='');}
+        if(e.key==='Escape')closeTerminal();
+    });
+    document.getElementById('termModal').addEventListener('click',e=>{if(e.target===document.getElementById('termModal'))closeTerminal();});
+}
+
+async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
+function closeInstalar(){document.getElementById('installModal').classList.remove('open');}
+async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
+function openRestore(){document.getElementById('restoreModal').classList.add('open');document.getElementById('restoreFile').value='';const msg=document.getElementById('restoreMsg');msg.style.display='none';msg.className='restore-msg';}
+function closeRestore(){document.getElementById('restoreModal').classList.remove('open');}
+async function doRestore(){const file=document.getElementById('restoreFile').files[0];if(!file){alert('Selecciona un fichero ZIP primero.');return;}const msg=document.getElementById('restoreMsg');msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Restaurando…';try{const form=new FormData();form.append('zipfile',file);const r=await fetch('?action=restore-configs',{method:'POST',body:form});const text=await r.text();let d;try{d=JSON.parse(text);}catch(parseErr){msg.className='restore-msg err';msg.textContent='✖ Respuesta inesperada: '+text.substring(0,200);return;}msg.className='restore-msg '+(d.ok?'ok':'err');msg.textContent=(d.ok?'✔ ':'✖ ')+d.msg;if(d.ok)setTimeout(closeRestore,2500);}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error de red: '+e.message;}}
+
+function colorize(text){return text.split('\n').map(l=>{const ll=l.toLowerCase();if(/error|fail|abort|assert/.test(ll))return`<span class="ln-err">${l}</span>`;if(/warn/.test(ll))return`<span class="ln-warn">${l}</span>`;if(/connect|start|open|loaded|success/.test(ll))return`<span class="ln-ok">${l}</span>`;return`<span class="ln-info">${l}</span>`;}).join('\n');}
+function clearLog(id){document.getElementById(id).innerHTML='';}
+async function fetchLogs(){try{const r=await fetch('?action=logs&lines=15');const d=await r.json();['logGw:gateway','logMmd:mmdvm'].forEach(pair=>{const[id,key]=pair.split(':');const el=document.getElementById(id);const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d[key]);if(atBot)el.scrollTop=el.scrollHeight;});}catch(e){}}
+async function fetchYSFLogs(){try{const r=await fetch('?action=ysf-logs&lines=15');const d=await r.json();const el=document.getElementById('logYsf');const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d.ysf);if(atBot)el.scrollTop=el.scrollHeight;}catch(e){}}
+async function fetchMMDVMYSFLogs(){try{const r=await fetch('?action=mmdvmysf-logs&lines=15');const d=await r.json();const el=document.getElementById('logMmdvmYsf');const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d.mmdvmysf);if(atBot)el.scrollTop=el.scrollHeight;}catch(e){}}
+function startRefresh(){fetchLogs();fetchTransmission();refreshTimer=setInterval(fetchLogs,5000);txTimer=setInterval(fetchTransmission,3000);}
+function stopRefresh(){clearInterval(refreshTimer);clearInterval(txTimer);refreshTimer=txTimer=null;}
+function startYSFLogs(){fetchYSFLogs();ysfTimer=setInterval(fetchYSFLogs,4000);}
+function stopYSFLogs(){clearInterval(ysfTimer);ysfTimer=null;}
+function startMMDVMYSFLogs(){fetchMMDVMYSFLogs();mmdvmYsfTimer=setInterval(fetchMMDVMYSFLogs,4000);}
+function stopMMDVMYSFLogs(){clearInterval(mmdvmYsfTimer);mmdvmYsfTimer=null;}
+function startYSFTransmissionPoll(){fetchYSFTransmission();ysfTxTimer=setInterval(fetchYSFTransmission,4000);}
+
+async function fetchSysInfo(){try{const r=await fetch('?action=sysinfo');const d=await r.json();const cpuEl=document.getElementById('siCpu');cpuEl.textContent=d.cpu+' %';cpuEl.style.color=d.cpu>80?'var(--red)':d.cpu>50?'var(--amber)':'var(--green)';const tempEl=document.getElementById('siTemp');tempEl.textContent=d.temp||'—';const t=parseFloat(d.temp);tempEl.style.color=t>75?'var(--red)':t>60?'var(--amber)':'var(--green)';document.getElementById('siRam').textContent=d.ramUsed+' GB / '+d.ramTotal+' GB';document.getElementById('siRamFree').textContent=d.ramFree+' GB';document.getElementById('siDisk').textContent=d.diskUsed+' GB / '+d.diskTotal+' GB';document.getElementById('siDiskFree').textContent=d.diskFree+' GB';}catch(e){}}
+fetchSysInfo();setInterval(fetchSysInfo,8000);
+
+(async()=>{
+    await fetchStationInfo();
+    setInterval(fetchStationInfo,60000);
+    await checkStatus();await checkYSFStatus();await checkMMDVMYSFStatus();await checkDStarStatus();
+    setInterval(checkStatus,10000);setInterval(checkYSFStatus,8000);setInterval(checkMMDVMYSFStatus,8000);setInterval(checkDStarStatus,10000);
+    if(!running){showIdle();fetchTransmission();}
+    showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
+    initTerminal();
+})();
+</script>
+</body>
+</html>
