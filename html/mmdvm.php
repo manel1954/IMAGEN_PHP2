@@ -712,6 +712,8 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
+<a href="#" class="btn-header cyan" data-bs-toggle="modal" data-bs-target="#terminalModal">Terminal</a>
+
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 </div>
 </header>
