@@ -3,129 +3,93 @@ require_once __DIR__ . '/auth.php';
 header('X-Content-Type-Options: nosniff');
 $action = $_GET['action'] ?? '';
 
-// ── Función para guardar estado de servicios ─────────────────────────
 function saveState($key, $value) {
     $file = '/var/lib/mmdvm-state';
     $lines = file_exists($file) ? file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
     $found = false;
     foreach ($lines as &$line) {
-        if (strpos($line, $key . '=') === 0) {
-            $line = $key . '=' . $value;
-            $found = true;
-        }
+        if (strpos($line, $key . '=') === 0) { $line = $key . '=' . $value; $found = true; }
     }
     unset($line);
     if (!$found) $lines[] = $key . '=' . $value;
     file_put_contents($file, implode("\n", $lines) . "\n");
 }
 
-// ── Parser genérico de ficheros .ini tipo MMDVMHost ──────────────────
 function parseMMDVMIni($path) {
-    $result = [];
-    if (!file_exists($path)) return $result;
+    $result = []; if (!file_exists($path)) return $result;
     $section = '';
     foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $line = trim($line);
         if ($line === '' || $line[0] === '#' || $line[0] === ';') continue;
         if (preg_match('/^\[(.+)\]$/', $line, $m)) { $section = trim($m[1]); continue; }
-        if (preg_match('/^([^=]+)=(.*)$/', $line, $m)) {
-            $result[$section][trim($m[1])] = trim($m[2]);
-        }
+        if (preg_match('/^([^=]+)=(.*)$/', $line, $m)) { $result[$section][trim($m[1])] = trim($m[2]); }
     }
     return $result;
 }
 
-// ── Convertir lat/lon a locator Maidenhead (6 caracteres) ────────────
 function latLonToLocator($lat, $lon) {
-    $lat = floatval($lat) + 90;
-    $lon = floatval($lon) + 180;
-    $A = ord('A');
-    $f1 = chr($A + intval($lon / 20));
-    $f2 = chr($A + intval($lat / 10));
-    $f3 = strval(intval(fmod($lon, 20) / 2));
-    $f4 = strval(intval(fmod($lat, 10)));
-    $f5 = chr($A + intval(fmod($lon, 2) * 12));
-    $f6 = chr($A + intval(fmod($lat, 1) * 24));
+    $lat = floatval($lat) + 90; $lon = floatval($lon) + 180; $A = ord('A');
+    $f1 = chr($A + intval($lon / 20)); $f2 = chr($A + intval($lat / 10));
+    $f3 = strval(intval(fmod($lon, 20) / 2)); $f4 = strval(intval(fmod($lat, 10)));
+    $f5 = chr($A + intval(fmod($lon, 2) * 12)); $f6 = chr($A + intval(fmod($lat, 1) * 24));
     return strtoupper($f1 . $f2 . $f3 . $f4) . strtolower($f5 . $f6);
 }
 
-// ── Formatear frecuencia Hz → MHz ────────────────────────────────────
 function formatFreq($hz) {
     $mhz = intval($hz) / 1000000;
     return number_format($mhz, 3, '.', '') . ' MHz';
 }
 
-// ── Datos desde MMDVMHost.ini ────────────────────────────────────────
+if ($action === 'terminal') {
+    $cmd = trim($_POST['cmd'] ?? '');
+    $out = $cmd !== '' ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '') : '';
+    header('Content-Type: application/json');
+    echo json_encode(['output' => htmlspecialchars($out)]);
+    exit;
+}
+
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-
-    $callsign = $ini['General']['Callsign']    ?? 'EA3EIZ';
-    $dmrid    = $ini['General']['Id']          ?? '214317526';
+    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
+    $dmrid    = $ini['General']['Id'] ?? '214317526';
     $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
-
     $lat      = $ini['Info']['Latitude']    ?? '41.3851';
     $lon      = $ini['Info']['Longitude']   ?? '2.1734';
     $location = $ini['Info']['Location']    ?? 'Barcelona';
     $desc     = $ini['Info']['Description'] ?? '';
-
-    $locator  = (floatval($lat) != 0 || floatval($lon) != 0)
-        ? latLonToLocator($lat, $lon)
-        : 'JN11CK';
-
-    // Puerto del modem — [Modem] UARTPort=
-    $port = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
-
-    // Frecuencias RX y TX desde [Info]
-    $rxhz   = $ini['Info']['RXFrequency'] ?? '0';
-    $txhz   = $ini['Info']['TXFrequency'] ?? $txfreq;
-    $freqRX = formatFreq($rxhz);
-    $freq   = formatFreq($txhz);
-
-    // IP: primero Address del ini, si vacía o 0.0.0.0 usar IP real de la Pi
-    $iniIp = trim($ini['General']['Address'] ?? '');
-    if ($iniIp === '' || $iniIp === '0.0.0.0') {
-        $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
-    }
+    $locator  = (floatval($lat) != 0 || floatval($lon) != 0) ? latLonToLocator($lat, $lon) : 'JN11CK';
+    $port     = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
+    $rxhz     = $ini['Info']['RXFrequency'] ?? '0';
+    $txhz     = $ini['Info']['TXFrequency'] ?? $txfreq;
+    $freqRX   = formatFreq($rxhz); $freq = formatFreq($txhz);
+    $iniIp    = trim($ini['General']['Address'] ?? '');
+    if ($iniIp === '' || $iniIp === '0.0.0.0') $iniIp = trim(shell_exec("hostname -I 2>/dev/null | awk '{print $1}'"));
     $ip = $iniIp ?: '—';
-
-    // ── Datos desde MMDVMYSF.ini ─────────────────────────────────
-    $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
-    $ysfIni = parseMMDVMIni($ysfIniPath);
-
-    $ysfPort   = $ysfIni['Modem']['UARTPort']      ?? ($ysfIni['modem']['UARTPort'] ?? '—');
-    $ysfRxHz   = $ysfIni['Info']['RXFrequency']    ?? '0';
-    $ysfTxHz   = $ysfIni['Info']['TXFrequency']    ?? '0';
-    $ysfFreqRX = formatFreq($ysfRxHz);
-    $ysfFreqTX = formatFreq($ysfTxHz);
+    $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini'; $ysfIni = parseMMDVMIni($ysfIniPath);
+    $ysfPort   = $ysfIni['Modem']['UARTPort'] ?? ($ysfIni['modem']['UARTPort'] ?? '—');
+    $ysfRxHz   = $ysfIni['Info']['RXFrequency'] ?? '0'; $ysfTxHz = $ysfIni['Info']['TXFrequency'] ?? '0';
+    $ysfFreqRX = formatFreq($ysfRxHz); $ysfFreqTX = formatFreq($ysfTxHz);
     $ysfIpRaw  = trim($ysfIni['General']['Address'] ?? '');
     $ysfIp     = ($ysfIpRaw !== '' && $ysfIpRaw !== '0.0.0.0') ? $ysfIpRaw : $ip;
 
+    // ── Datos desde MMDVMDSTAR.ini ────────────────────────────────
+    $dstarIniPath = '/home/pi/MMDVMHost/MMDVMDSTAR.ini';
+    $dstarIni = parseMMDVMIni($dstarIniPath);
+    $dstarPort  = $dstarIni['Modem']['UARTPort'] ?? ($dstarIni['modem']['UARTPort'] ?? '—');
+    $dstarRxHz  = $dstarIni['Info']['RXFrequency'] ?? '0';
+    $dstarTxHz  = $dstarIni['Info']['TXFrequency'] ?? '0';
+    $dstarFreqRX = formatFreq($dstarRxHz);
+    $dstarFreqTX = formatFreq($dstarTxHz);
+    $dstarIpRaw = trim($dstarIni['General']['Address'] ?? '');
+    $dstarIp    = ($dstarIpRaw !== '' && $dstarIpRaw !== '0.0.0.0') ? $dstarIpRaw : $ip;
     header('Content-Type: application/json');
-    echo json_encode([
-        'callsign'  => strtoupper(trim($callsign)),
-        'dmrid'     => trim($dmrid),
-        'freq'      => $freq,
-        'freqRX'    => $freqRX,
-        'port'      => $port ?: '—',
-        'ip'        => $ip,
-        'locator'   => $locator,
-        'location'  => trim($location),
-        'desc'      => trim($desc),
-        'lat'       => $lat,
-        'lon'       => $lon,
-        'ysfPort'   => $ysfPort ?: '—',
-        'ysfFreqRX' => $ysfFreqRX,
-        'ysfFreqTX' => $ysfFreqTX,
-        'ysfIp'     => $ysfIp ?: '—',
-    ]);
+    echo json_encode(['callsign'=>strtoupper(trim($callsign)),'dmrid'=>trim($dmrid),'freq'=>$freq,'freqRX'=>$freqRX,'port'=>$port?:'—','ip'=>$ip,'locator'=>$locator,'location'=>trim($location),'desc'=>trim($desc),'lat'=>$lat,'lon'=>$lon,'ysfPort'=>$ysfPort?:'—','ysfFreqRX'=>$ysfFreqRX,'ysfFreqTX'=>$ysfFreqTX,'ysfIp'=>$ysfIp?:'—','dstarPort'=>$dstarPort?:'—','dstarFreqRX'=>$dstarFreqRX,'dstarFreqTX'=>$dstarFreqTX,'dstarIp'=>$dstarIp?:'—']);
     exit;
 }
 
-// ── System Info ──────────────────────────────────────────────────────
 if ($action === 'sysinfo') {
-    $s1 = file('/proc/stat'); $cpu1 = preg_split('/\s+/', trim($s1[0]));
-    usleep(300000);
+    $s1 = file('/proc/stat'); $cpu1 = preg_split('/\s+/', trim($s1[0])); usleep(300000);
     $s2 = file('/proc/stat'); $cpu2 = preg_split('/\s+/', trim($s2[0]));
     $idle1 = $cpu1[4]; $total1 = array_sum(array_slice($cpu1, 1));
     $idle2 = $cpu2[4]; $total2 = array_sum(array_slice($cpu2, 1));
@@ -147,308 +111,166 @@ if ($action === 'sysinfo') {
     exit;
 }
 
-// ── DMR status ───────────────────────────────────────────────────────
 if ($action === 'status') {
     $gw = trim(shell_exec('systemctl is-active dmrgateway 2>/dev/null'));
     $mmd = trim(shell_exec('systemctl is-active mmdvmhost 2>/dev/null'));
-    header('Content-Type: application/json');
-    echo json_encode(['gateway' => $gw, 'mmdvm' => $mmd]);
-    exit;
+    header('Content-Type: application/json'); echo json_encode(['gateway'=>$gw,'mmdvm'=>$mmd]); exit;
 }
-
-// ── DMR start ────────────────────────────────────────────────────────
 if ($action === 'start') {
-    saveState('dmr', 'on');
-    shell_exec('sudo systemctl start dmrgateway 2>/dev/null');
-    sleep(2);
+    saveState('dmr','on'); shell_exec('sudo systemctl start dmrgateway 2>/dev/null'); sleep(2);
     shell_exec('sudo systemctl start mmdvmhost 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
+    header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit;
 }
-
-// ── DMR stop ─────────────────────────────────────────────────────────
 if ($action === 'stop') {
-    saveState('dmr', 'off');
-    shell_exec('sudo systemctl stop mmdvmhost 2>/dev/null');
-    sleep(1);
+    saveState('dmr','off'); shell_exec('sudo systemctl stop mmdvmhost 2>/dev/null'); sleep(1);
     shell_exec('sudo systemctl stop dmrgateway 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
+    header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit;
 }
+if ($action === 'update-imagen') { $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1'); header('Content-Type: application/json'); echo json_encode(['ok'=>true,'output'=>htmlspecialchars($output??'(sin salida)')]); exit; }
+if ($action === 'update-ids')    { $output = shell_exec('sudo sh /home/pi/A108/actualizar_ids.sh 2>&1'); header('Content-Type: application/json'); echo json_encode(['ok'=>true,'output'=>htmlspecialchars($output??'(sin salida)')]); exit; }
+if ($action === 'update-ysf')    { $output = shell_exec('sudo sh /home/pi/A108/actualizar_reflectores_ysf.sh 2>&1'); header('Content-Type: application/json'); echo json_encode(['ok'=>true,'output'=>htmlspecialchars($output??'(sin salida)')]); exit; }
 
-// ── Actualizaciones ──────────────────────────────────────────────────
-if ($action === 'update-imagen') {
-    $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
-    exit;
-}
-if ($action === 'update-ids') {
-    $output = shell_exec('sudo sh /home/pi/A108/actualizar_ids.sh 2>&1');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
-    exit;
-}
-if ($action === 'update-ysf') {
-    $output = shell_exec('sudo sh /home/pi/A108/actualizar_reflectores_ysf.sh 2>&1');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
-    exit;
-}
-
-// ── YSF status ───────────────────────────────────────────────────────
 if ($action === 'ysf-status') {
     $st = trim(shell_exec('sudo /usr/local/bin/ysf_status.sh 2>/dev/null'));
-    if ($st === 'active') { header('Content-Type: application/json'); echo json_encode(['ysf' => 'active']); exit; }
+    if ($st === 'active') { header('Content-Type: application/json'); echo json_encode(['ysf'=>'active']); exit; }
     $pid = trim(@file_get_contents('/tmp/ysfgateway.pid'));
-    $active = ($pid && is_numeric($pid) && file_exists('/proc/' . $pid)) ? 'active' : 'inactive';
-    header('Content-Type: application/json');
-    echo json_encode(['ysf' => $active]);
-    exit;
+    $active = ($pid && is_numeric($pid) && file_exists('/proc/'.$pid)) ? 'active' : 'inactive';
+    header('Content-Type: application/json'); echo json_encode(['ysf'=>$active]); exit;
 }
+if ($action === 'ysf-start')  { saveState('ysf','on'); shell_exec('sudo systemctl start ysfgateway 2>/dev/null'); sleep(1); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'ysf-stop')   { saveState('ysf','off'); shell_exec('sudo systemctl stop ysfgateway 2>/dev/null'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'mmdvmysf-status') { $st = trim(shell_exec('systemctl is-active mmdvmysf 2>/dev/null')); header('Content-Type: application/json'); echo json_encode(['mmdvmysf'=>$st]); exit; }
+if ($action === 'mmdvmysf-start')  { saveState('ysf','on'); shell_exec('sudo systemctl start mmdvmysf 2>/dev/null'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'mmdvmysf-stop')   { saveState('ysf','off'); shell_exec('sudo systemctl stop ysfgateway 2>/dev/null'); sleep(1); shell_exec('sudo systemctl stop mmdvmysf 2>/dev/null'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'mmdvmysf-logs')   { $lines = intval($_GET['lines']??15); $log = shell_exec("sudo journalctl -u mmdvmysf -n {$lines} --no-pager --output=short 2>/dev/null"); header('Content-Type: application/json'); echo json_encode(['mmdvmysf'=>htmlspecialchars($log??'')]); exit; }
+if ($action === 'reboot')          { shell_exec('sudo /usr/bin/systemctl reboot 2>/dev/null'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'display-restart') { shell_exec('sudo systemctl daemon-reload 2>/dev/null'); shell_exec('sudo systemctl enable displaydriver 2>/dev/null'); shell_exec('sudo systemctl restart displaydriver 2>/dev/null'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'install-display') { $output = shell_exec('sudo /home/pi/A108/instalar_displaydriver.sh 2>&1'); header('Content-Type: application/json'); echo json_encode(['ok'=>true,'output'=>htmlspecialchars($output??'')]); exit; }
 
-// ── YSF start ────────────────────────────────────────────────────────
-if ($action === 'ysf-start') {
-    saveState('ysf', 'on');
-    shell_exec('sudo systemctl start ysfgateway 2>/dev/null');
-    sleep(1);
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── YSF stop ─────────────────────────────────────────────────────────
-if ($action === 'ysf-stop') {
-    saveState('ysf', 'off');
-    shell_exec('sudo systemctl stop ysfgateway 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── MMDVMHost YSF status ─────────────────────────────────────────────
-if ($action === 'mmdvmysf-status') {
-    $st = trim(shell_exec('systemctl is-active mmdvmysf 2>/dev/null'));
-    header('Content-Type: application/json');
-    echo json_encode(['mmdvmysf' => $st]);
-    exit;
-}
-
-// ── MMDVMHost YSF start ───────────────────────────────────────────────
-if ($action === 'mmdvmysf-start') {
-    saveState('ysf', 'on');
-    shell_exec('sudo systemctl start mmdvmysf 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── MMDVMHost YSF stop ────────────────────────────────────────────────
-if ($action === 'mmdvmysf-stop') {
-    saveState('ysf', 'off');
-    shell_exec('sudo systemctl stop ysfgateway 2>/dev/null');
-    sleep(1);
-    shell_exec('sudo systemctl stop mmdvmysf 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-if ($action === 'mmdvmysf-logs') {
-    $lines = intval($_GET['lines'] ?? 15);
-    $log = shell_exec("sudo journalctl -u mmdvmysf -n {$lines} --no-pager --output=short 2>/dev/null");
-    header('Content-Type: application/json');
-    echo json_encode(['mmdvmysf' => htmlspecialchars($log ?? '')]);
-    exit;
-}
-
-// ── Reboot ───────────────────────────────────────────────────────────
-if ($action === 'reboot') {
-    shell_exec('sudo /usr/bin/systemctl reboot 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── Display Driver restart ───────────────────────────────────────────
-if ($action === 'display-restart') {
-    shell_exec('sudo systemctl daemon-reload 2>/dev/null');
-    shell_exec('sudo systemctl enable displaydriver 2>/dev/null');
-    shell_exec('sudo systemctl restart displaydriver 2>/dev/null');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── Instalar Display Driver ──────────────────────────────────────────
-if ($action === 'install-display') {
-    $output = shell_exec('sudo /home/pi/A108/instalar_displaydriver.sh 2>&1');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '')]);
-    exit;
-}
-
-// ── Backup configuraciones ───────────────────────────────────────────
 if ($action === 'backup-configs') {
-    $zipName = 'Copia_A108.zip';
-    $zipPath = '/tmp/' . $zipName;
-    $files = [
-        '/home/pi/MMDVMHost/MMDVMHost.ini',
-        '/home/pi/MMDVMHost/MMDVMYSF.ini',
-        '/home/pi/Display-Driver/DisplayDriver.ini',
-        '/home/pi/YSFClients/YSFGateway/YSFGateway.ini',
-        '/home/pi/DMRGateway/DMRGateway.ini',
-    ];
+    $zipName = 'Copia_PHP2.zip'; $zipPath = '/tmp/'.$zipName;
+    $files = ['/home/pi/MMDVMHost/MMDVMHost.ini','/home/pi/MMDVMHost/MMDVMYSF.ini','/home/pi/MMDVMHost/MMDVMDSTAR.ini','/home/pi/MMDVMHost/MMDVMNXDN.ini','/home/pi/Display-Driver/DisplayDriver.ini','/home/pi/YSFClients/YSFGateway/YSFGateway.ini','/home/pi/DMRGateway/DMRGateway.ini','/home/pi/DStarGateway/DStarGateway.ini','/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini'];
     $fileList = implode(' ', array_map('escapeshellarg', $files));
-    shell_exec("zip -j " . escapeshellarg($zipPath) . " {$fileList} 2>/dev/null");
-    if (file_exists($zipPath)) {
-        header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="' . $zipName . '"');
-        header('Content-Length: ' . filesize($zipPath));
-        header('Pragma: no-cache'); header('Expires: 0');
-        readfile($zipPath); unlink($zipPath);
-    } else {
-        header('Content-Type: text/plain');
-        echo 'Error: No se pudo crear el ZIP.';
-    }
+    shell_exec("zip -j ".escapeshellarg($zipPath)." {$fileList} 2>/dev/null");
+    if (file_exists($zipPath)) { header('Content-Type: application/zip'); header('Content-Disposition: attachment; filename="'.$zipName.'"'); header('Content-Length: '.filesize($zipPath)); header('Pragma: no-cache'); header('Expires: 0'); readfile($zipPath); unlink($zipPath); } else { header('Content-Type: text/plain'); echo 'Error: No se pudo crear el ZIP.'; }
     exit;
 }
 
-// ── Restore configuraciones ──────────────────────────────────────────
 if ($action === 'restore-configs') {
     ob_start(); error_reporting(0);
     $uploadOk = isset($_FILES['zipfile']) && $_FILES['zipfile']['error'] === UPLOAD_ERR_OK;
-    if (!$uploadOk) { $errCode = $_FILES['zipfile']['error'] ?? -1; ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se recibió el fichero. Error: ' . $errCode]); exit; }
+    if (!$uploadOk) { $errCode = $_FILES['zipfile']['error']??-1; ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'msg'=>'No se recibió el fichero. Error: '.$errCode]); exit; }
     $tmpZip = $_FILES['zipfile']['tmp_name'];
-    if (!file_exists($tmpZip) || filesize($tmpZip) === 0) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'Fichero vacío.']); exit; }
-    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini'];
+    if (!file_exists($tmpZip)||filesize($tmpZip)===0) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'msg'=>'Fichero vacío.']); exit; }
+    $destMap = ['MMDVMHost.ini'=>'/home/pi/MMDVMHost/MMDVMHost.ini','MMDVMYSF.ini'=>'/home/pi/MMDVMHost/MMDVMYSF.ini','DisplayDriver.ini'=>'/home/pi/Display-Driver/DisplayDriver.ini','YSFGateway.ini'=>'/home/pi/YSFClients/YSFGateway/YSFGateway.ini','DMRGateway.ini'=>'/home/pi/DMRGateway/DMRGateway.ini','DStarGateway.ini'=>'/home/pi/DStarGateway/DStarGateway.ini','NXDNGateway.ini'=>'/home/pi/NXDNClients/NXDNGateway/NXDNGateway.ini','MMDVMDSTAR.ini'=>'/home/pi/MMDVMHost/MMDVMDSTAR.ini','MMDVMNXDN.ini'=>'/home/pi/MMDVMHost/MMDVMNXDN.ini'];
     $zip = new ZipArchive(); $openResult = $zip->open($tmpZip);
-    if ($openResult !== true) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se pudo abrir el ZIP. Código: ' . $openResult]); exit; }
+    if ($openResult !== true) { ob_end_clean(); header('Content-Type: application/json'); echo json_encode(['ok'=>false,'msg'=>'No se pudo abrir el ZIP. Código: '.$openResult]); exit; }
     $restored = []; $errors = [];
-    for ($i = 0; $i < $zip->numFiles; $i++) { $name = basename($zip->getNameIndex($i)); if (isset($destMap[$name])) { $result = file_put_contents($destMap[$name], $zip->getFromIndex($i)); if ($result !== false) $restored[] = $name; else $errors[] = $name; } }
+    for ($i=0;$i<$zip->numFiles;$i++) { $name=basename($zip->getNameIndex($i)); if(isset($destMap[$name])){$result=file_put_contents($destMap[$name],$zip->getFromIndex($i));if($result!==false)$restored[]=$name;else $errors[]=$name;} }
     $zip->close(); ob_end_clean();
-    if (empty($restored)) { header('Content-Type: application/json'); echo json_encode(['ok' => false, 'msg' => 'No se encontraron ficheros compatibles.']); exit; }
-    $msg = 'Restaurados: ' . implode(', ', $restored);
-    if ($errors) $msg .= ' | Errores: ' . implode(', ', $errors);
-    header('Content-Type: application/json'); echo json_encode(['ok' => true, 'msg' => $msg]); exit;
+    if (empty($restored)) { header('Content-Type: application/json'); echo json_encode(['ok'=>false,'msg'=>'No se encontraron ficheros compatibles.']); exit; }
+    $msg = 'Restaurados: '.implode(', ',$restored); if($errors)$msg.=' | Errores: '.implode(', ',$errors);
+    header('Content-Type: application/json'); echo json_encode(['ok'=>true,'msg'=>$msg]); exit;
 }
 
-// ── logs ─────────────────────────────────────────────────────────────
 if ($action === 'logs') {
-    $lines = intval($_GET['lines'] ?? 15);
-    $gw = shell_exec("sudo journalctl -u dmrgateway -n {$lines} --no-pager --output=short 2>/dev/null");
+    $lines = intval($_GET['lines']??15);
+    $gw  = shell_exec("sudo journalctl -u dmrgateway -n {$lines} --no-pager --output=short 2>/dev/null");
     $mmd = shell_exec("sudo journalctl -u mmdvmhost -n {$lines} --no-pager --output=short 2>/dev/null");
-    header('Content-Type: application/json');
-    echo json_encode(['gateway' => htmlspecialchars($gw ?? ''), 'mmdvm' => htmlspecialchars($mmd ?? '')]);
-    exit;
+    header('Content-Type: application/json'); echo json_encode(['gateway'=>htmlspecialchars($gw??''),'mmdvm'=>htmlspecialchars($mmd??'')]); exit;
 }
 
-// ── YSF logs ─────────────────────────────────────────────────────────
 if ($action === 'ysf-logs') {
-    $lines = intval($_GET['lines'] ?? 15);
+    $lines = intval($_GET['lines']??15);
     $log = shell_exec("sudo journalctl -u ysfgateway -n {$lines} --no-pager --output=short 2>/dev/null");
     if (empty(trim($log))) $log = shell_exec("tail -n {$lines} /tmp/ysfgateway.log 2>/dev/null");
-    if (empty(trim($log))) { $logFile = glob('/home/pi/YSFClients/YSFGateway/YSFGateway-*.log'); if ($logFile) { $latest = end($logFile); $log = shell_exec("tail -n {$lines} " . escapeshellarg($latest) . " 2>/dev/null"); } }
-    header('Content-Type: application/json');
-    echo json_encode(['ysf' => htmlspecialchars($log ?? '')]);
-    exit;
+    if (empty(trim($log))) { $logFile = glob('/home/pi/YSFClients/YSFGateway/YSFGateway-*.log'); if($logFile){$latest=end($logFile);$log=shell_exec("tail -n {$lines} ".escapeshellarg($latest)." 2>/dev/null");} }
+    header('Content-Type: application/json'); echo json_encode(['ysf'=>htmlspecialchars($log??'')]); exit;
 }
 
-// ── DMR Id lookup ────────────────────────────────────────────────────
 function lookupCall($callsign) {
-    $datFiles = ['/home/pi/MMDVMHost/DMRIds.dat','/etc/DMRIds.dat','/usr/local/etc/DMRIds.dat'];
-    $cs = strtoupper(trim($callsign));
+    $datFiles=['/home/pi/MMDVMHost/DMRIds.dat','/etc/DMRIds.dat','/usr/local/etc/DMRIds.dat'];
+    $cs=strtoupper(trim($callsign));
     foreach ($datFiles as $f) {
-        if (!file_exists($f)) continue;
-        $cmd = "awk -F'\t' '{if (toupper(\$2)==\"" . $cs . "\") {print \$1\"\t\"\$2\"\t\"\$3; exit}}' " . escapeshellarg($f) . " 2>/dev/null";
-        $row = trim(shell_exec($cmd));
-        if ($row !== '') { $parts = explode("\t", $row); return ['dmrid' => trim($parts[0] ?? ''), 'name' => trim($parts[2] ?? '')]; }
+        if(!file_exists($f))continue;
+        $cmd="awk -F'\t' '{if (toupper(\$2)==\"" . $cs . "\") {print \$1\"\t\"\$2\"\t\"\$3; exit}}' ".escapeshellarg($f)." 2>/dev/null";
+        $row=trim(shell_exec($cmd));
+        if($row!==''){$parts=explode("\t",$row);return['dmrid'=>trim($parts[0]??''),'name'=>trim($parts[2]??'')];}
     }
-    return ['dmrid' => '', 'name' => ''];
+    return ['dmrid'=>'','name'=>''];
 }
 
 if ($action === 'transmission') {
     $log = shell_exec("sudo journalctl -u mmdvmhost -n 200 --no-pager --output=short 2>/dev/null");
-    $lines = array_reverse(explode("\n", $log));
-    $active = false; $callsign = ''; $dmrid = ''; $name = ''; $tg = ''; $slot = ''; $source = '';
+    $lines = array_reverse(explode("\n",$log));
+    $active=false;$callsign='';$dmrid='';$name='';$tg='';$slot='';$source='';
     foreach ($lines as $line) {
-        if (preg_match('/DMR Slot \d.*(end of voice|lost RF|watchdog)/i', $line)) { $active = false; break; }
-        if (preg_match('/DMR Slot (\d), received (RF|network) voice header from (\S+) to TG (\d+)/i', $line, $m)) { $active = true; $slot = $m[1]; $source = strtoupper($m[2]); $callsign = strtoupper(rtrim($m[3], ',')); $tg = $m[4]; break; }
+        if(preg_match('/DMR Slot \d.*(end of voice|lost RF|watchdog)/i',$line)){$active=false;break;}
+        if(preg_match('/DMR Slot (\d), received (RF|network) voice header from (\S+) to TG (\d+)/i',$line,$m)){$active=true;$slot=$m[1];$source=strtoupper($m[2]);$callsign=strtoupper(rtrim($m[3],','));$tg=$m[4];break;}
     }
-    if ($callsign) { $info = lookupCall($callsign); $dmrid = $info['dmrid']; $name = $info['name']; }
-    $lastHeard = []; $seen = [];
+    if($callsign){$info=lookupCall($callsign);$dmrid=$info['dmrid'];$name=$info['name'];}
+    $lastHeard=[];$seen=[];
     foreach ($lines as $line) {
-        if (preg_match('/(\d{2}:\d{2}:\d{2})\.\d+\s+DMR Slot (\d), received (RF|network) voice header from (\S+) to TG (\d+)/i', $line, $m)) {
-            $cs = strtoupper(rtrim($m[4], ','));
-            if (!in_array($cs, $seen)) { $inf = lookupCall($cs); $lastHeard[] = ['callsign'=>$cs,'name'=>$inf['name'],'dmrid'=>$inf['dmrid'],'tg'=>$m[5],'slot'=>$m[2],'source'=>strtoupper($m[3]),'time'=>$m[1]]; $seen[] = $cs; if (count($lastHeard) >= 5) break; }
+        if(preg_match('/(\d{2}:\d{2}:\d{2})\.\d+\s+DMR Slot (\d), received (RF|network) voice header from (\S+) to TG (\d+)/i',$line,$m)){
+            $cs=strtoupper(rtrim($m[4],','));
+            if(!in_array($cs,$seen)){$inf=lookupCall($cs);$lastHeard[]=['callsign'=>$cs,'name'=>$inf['name'],'dmrid'=>$inf['dmrid'],'tg'=>$m[5],'slot'=>$m[2],'source'=>strtoupper($m[3]),'time'=>$m[1]];$seen[]=$cs;if(count($lastHeard)>=5)break;}
         }
     }
     header('Content-Type: application/json');
-    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'dmrid'=>$dmrid,'tg'=>$tg,'slot'=>$slot,'source'=>$source,'lastHeard'=>$lastHeard]);
+    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'dmrid'=>$dmrid,'tg'=>$tg,'slot'=>$slot,'source'=>$source,'lastHeard'=>$lastHeard]); exit;
+}
+
+if ($action === 'dstar-transmission') {
+    $log = shell_exec("sudo journalctl -u mmdvmdstar -n 300 --no-pager --output=short 2>/dev/null");
+    $lines = array_reverse(explode("\n", $log ?? ''));
+    $active = false; $callsign = ''; $source = ''; $name = '';
+    foreach ($lines as $line) {
+        if (preg_match('/D-Star.*(end of|lost RF|watchdog|finished|timeout)/i', $line)) { $active = false; break; }
+        if (preg_match('/D-Star.*received (RF|network).*from\s+([A-Z0-9\/]+)/i', $line, $m)) { $active = true; $source = strtoupper($m[1]); $callsign = strtoupper(trim($m[2])); break; }
+        if (preg_match('/received (RF|network) header from\s+([A-Z0-9\/]+)/i', $line, $m)) { $active = true; $source = strtoupper($m[1]); $callsign = strtoupper(trim($m[2])); break; }
+    }
+    if ($callsign) { $info = lookupCall(preg_replace('/\/.*$/', '', $callsign)); $name = $info['name']; }
+    header('Content-Type: application/json');
+    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'source'=>$source]);
     exit;
 }
 
-// ── DStar status ─────────────────────────────────────────────────────
 if ($action === 'dstar-status') {
-    $gw      = trim(shell_exec('systemctl is-active dstargateway 2>/dev/null'));
-    $mmd     = trim(shell_exec('systemctl is-active mmdvmdstar 2>/dev/null'));
-    $stopped = file_exists('/var/lib/dstar-stopped');
-    header('Content-Type: application/json');
-    echo json_encode(['gateway' => $gw, 'mmdvm' => $mmd, 'stopped' => $stopped]);
-    exit;
+    $gw=trim(shell_exec('systemctl is-active dstargateway 2>/dev/null'));
+    $mmd=trim(shell_exec('systemctl is-active mmdvmdstar 2>/dev/null'));
+    $stopped=file_exists('/var/lib/dstar-stopped');
+    header('Content-Type: application/json'); echo json_encode(['gateway'=>$gw,'mmdvm'=>$mmd,'stopped'=>$stopped]); exit;
 }
-
-// ── DStar start ───────────────────────────────────────────────────────
-if ($action === 'dstar-start') {
-    shell_exec('sudo /usr/local/bin/dstar-start.sh 2>/dev/null &');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── DStar stop ────────────────────────────────────────────────────────
-if ($action === 'dstar-stop') {
-    shell_exec('sudo /usr/local/bin/dstar-stop.sh 2>/dev/null &');
-    header('Content-Type: application/json');
-    echo json_encode(['ok' => true]);
-    exit;
-}
-
-// ── DStar logs ────────────────────────────────────────────────────────
-if ($action === 'dstar-logs') {
-    $lines = intval($_GET['lines'] ?? 15);
+if ($action === 'dstar-start') { shell_exec('sudo /usr/local/bin/dstar-start.sh 2>/dev/null &'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'dstar-stop')  { shell_exec('sudo /usr/local/bin/dstar-stop.sh 2>/dev/null &'); header('Content-Type: application/json'); echo json_encode(['ok'=>true]); exit; }
+if ($action === 'dstar-logs')  {
+    $lines=intval($_GET['lines']??15);
     $gw  = shell_exec("sudo journalctl -u dstargateway -n {$lines} --no-pager --output=short 2>/dev/null");
     $mmd = shell_exec("sudo journalctl -u mmdvmdstar  -n {$lines} --no-pager --output=short 2>/dev/null");
-    header('Content-Type: application/json');
-    echo json_encode(['gateway' => htmlspecialchars($gw ?? ''), 'mmdvm' => htmlspecialchars($mmd ?? '')]);
-    exit;
+    header('Content-Type: application/json'); echo json_encode(['gateway'=>htmlspecialchars($gw??''),'mmdvm'=>htmlspecialchars($mmd??'')]); exit;
 }
 
-// ── YSF transmission ─────────────────────────────────────────────────
 if ($action === 'ysf-transmission') {
     $log = shell_exec("sudo journalctl -u mmdvmysf -n 300 --no-pager --output=short 2>/dev/null");
-    if (empty(trim($log))) $log = shell_exec("sudo journalctl -u ysfgateway -n 300 --no-pager --output=short 2>/dev/null");
-    $lines = array_reverse(explode("\n", $log));
-    $active = false; $callsign = ''; $name = ''; $dest = ''; $source = '';
+    if(empty(trim($log)))$log=shell_exec("sudo journalctl -u ysfgateway -n 300 --no-pager --output=short 2>/dev/null");
+    $lines=array_reverse(explode("\n",$log));
+    $active=false;$callsign='';$name='';$dest='';$source='';
     foreach ($lines as $line) {
-        if (preg_match('/YSF.*(end of|lost RF|lost net|watchdog|timeout|no reply|voice end|fin)/i', $line)) { $active = false; break; }
-        if (preg_match('/YSF.*voice (end|fin|stop)/i', $line)) { $active = false; break; }
-        if (preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*received (RF|network) voice.*from\s+(\S+)/i', $line, $m)) { $active = true; $source = strtoupper($m[2]); $callsign = strtoupper(trim($m[3])); break; }
-        if (preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*from\s+(\S+)\s+to\s+(\S+)/i', $line, $m)) { $active = true; $source = 'RF'; $callsign = strtoupper(trim($m[2])); $dest = trim($m[3]); break; }
+        if(preg_match('/YSF.*(end of|lost RF|lost net|watchdog|timeout|no reply|voice end|fin)/i',$line)){$active=false;break;}
+        if(preg_match('/YSF.*voice (end|fin|stop)/i',$line)){$active=false;break;}
+        if(preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*received (RF|network) voice.*from\s+(\S+)/i',$line,$m)){$active=true;$source=strtoupper($m[2]);$callsign=strtoupper(trim($m[3]));break;}
+        if(preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*from\s+(\S+)\s+to\s+(\S+)/i',$line,$m)){$active=true;$source='RF';$callsign=strtoupper(trim($m[2]));$dest=trim($m[3]);break;}
     }
-    if ($callsign) { $info = lookupCall($callsign); $name = $info['name']; }
-    $lastHeard = []; $seen = [];
+    if($callsign){$info=lookupCall($callsign);$name=$info['name'];}
+    $lastHeard=[];$seen=[];
     foreach ($lines as $line) {
-        $cs = ''; $src = ''; $time = ''; $dst = '';
-        if (preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*received (RF|network) voice.*from\s+(\S+)/i', $line, $m)) { $time = $m[1]; $src = strtoupper($m[2]); $cs = strtoupper(trim($m[3])); }
-        elseif (preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*from\s+(\S+)\s+to\s+(\S+)/i', $line, $m)) { $time = $m[1]; $src = 'RF'; $cs = strtoupper(trim($m[2])); $dst = trim($m[3]); }
-        if ($cs && !in_array($cs, $seen)) { $inf = lookupCall($cs); $lastHeard[] = ['callsign'=>$cs,'name'=>$inf['name'],'dest'=>$dst,'source'=>$src,'time'=>$time]; $seen[] = $cs; if (count($lastHeard) >= 5) break; }
+        $cs='';$src='';$time='';$dst='';
+        if(preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*received (RF|network) voice.*from\s+(\S+)/i',$line,$m)){$time=$m[1];$src=strtoupper($m[2]);$cs=strtoupper(trim($m[3]));}
+        elseif(preg_match('/(\d{2}:\d{2}:\d{2}).*YSF.*from\s+(\S+)\s+to\s+(\S+)/i',$line,$m)){$time=$m[1];$src='RF';$cs=strtoupper(trim($m[2]));$dst=trim($m[3]);}
+        if($cs&&!in_array($cs,$seen)){$inf=lookupCall($cs);$lastHeard[]=['callsign'=>$cs,'name'=>$inf['name'],'dest'=>$dst,'source'=>$src,'time'=>$time];$seen[]=$cs;if(count($lastHeard)>=5)break;}
     }
     header('Content-Type: application/json');
-    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'dest'=>$dest,'source'=>$source,'lastHeard'=>$lastHeard]);
-    exit;
+    echo json_encode(['active'=>$active,'callsign'=>$callsign,'name'=>$name,'dest'=>$dest,'source'=>$source,'lastHeard'=>$lastHeard]); exit;
 }
 ?>
 <!DOCTYPE html>
@@ -476,28 +298,15 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-ui); f
 .btn-header.red:hover { background: rgba(255,69,96,.15); }
 button.btn-header { font-family: var(--font-mono); }
 .ctrl-body { padding: 2rem; max-width: 1400px; margin: 0 auto; }
-
-/* ── Station Card ─────────────────────────────────────────────── */
 .station-card { background: linear-gradient(135deg,#111720 60%,#0d1e2a 100%); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem 2rem; display: flex; align-items: center; gap: 2.5rem; margin-bottom: 1.8rem; flex-wrap: wrap; position: relative; overflow: hidden; }
 .station-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,transparent,var(--cyan),var(--violet),transparent); }
 .station-card-main { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
 .station-callsign { font-family: var(--font-orb); font-size: 2.4rem; font-weight: 900; color: var(--cyan); letter-spacing: .08em; line-height: 1; text-shadow: 0 0 20px rgba(0,212,255,.4); }
-.station-location { font-family: var(--font-mono); font-size: .78rem; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; margin-top: .25rem; }
-.station-name-pill { display: inline-block; margin-top: .4rem; background: linear-gradient(90deg,#1a3a5a,#1a2d4a); border: 1px solid rgba(0,212,255,.35); border-radius: 20px; padding: .35rem 1.2rem; font-family: var(--font-ui); font-weight: 700; font-size: 1rem; color: var(--cyan); letter-spacing: .1em; }
 .station-divider { width: 1px; height: 70px; background: var(--border); flex-shrink: 0; }
-.station-meta { display: flex; gap: 2rem; flex-wrap: wrap; align-items: center; flex: 1; }
 .station-meta-item { display: flex; flex-direction: column; gap: .15rem; }
 .station-meta-label { font-family: var(--font-mono); font-size: .6rem; color: var(--text-dim); letter-spacing: .15em; text-transform: uppercase; }
 .station-meta-value { font-family: var(--font-mono); font-size: .95rem; color: var(--amber); letter-spacing: .06em; font-weight: bold; }
-.station-meta-value.cyan { color: var(--cyan); }
-.station-meta-value.green { color: var(--green); }
-.station-meta-value.violet { color: var(--violet); }
-.station-assoc { margin-left: auto; font-family: var(--font-mono); font-size: .7rem; color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; border: 1px solid var(--border); border-radius: 4px; padding: .3rem .8rem; }
-.ini-source-badge { position: absolute; bottom: .45rem; right: .8rem; font-family: var(--font-mono); font-size: .58rem; color: var(--text-dim); letter-spacing: .1em; opacity: .55; }
-.ini-source-badge span { color: var(--green-dim); }
-@media (max-width:700px) { .station-card { gap: 1.2rem; padding: 1rem; } .station-divider { display: none; } .station-assoc { margin-left: 0; } }
-
-/* ── Status bar ───────────────────────────────────────────────── */
+@media (max-width:700px) { .station-card { gap: 1.2rem; padding: 1rem; } .station-divider { display: none; } }
 .status-bar { display: flex; gap: 2rem; margin-bottom: 1.8rem; flex-wrap: wrap; align-items: center; }
 .status-item { display: flex; align-items: center; gap: .5rem; font-family: var(--font-mono); font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-dim); transition: background .4s, box-shadow .4s; }
@@ -505,32 +314,24 @@ button.btn-header { font-family: var(--font-mono); }
 .dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 .section-divider { width: 1px; height: 20px; background: var(--border); margin: 0 .5rem; }
-
-/* ── Controls ─────────────────────────────────────────────────── */
 .controls-section { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 2rem; }
 @media (max-width:800px) { .controls-section { grid-template-columns: 1fr; } }
 .service-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.2rem 1.6rem; }
 .service-card-label { font-family: var(--font-mono); font-size: .7rem; letter-spacing: .15em; text-transform: uppercase; margin-bottom: 1rem; }
 .service-card-label.dmr { color: var(--amber); }
 .service-card-label.ysf { color: var(--violet); }
-
-/* ── Toggle switch ────────────────────────────────────────────── */
 .toggle-row { display: flex; align-items: center; gap: 1rem; padding: .5rem 0; }
 .toggle-label { font-family: var(--font-mono); font-size: .85rem; letter-spacing: .06em; color: var(--text-dim); text-transform: uppercase; flex: 1; transition: color .3s; }
-.toggle-label.on-dmr  { color: var(--amber); }
-.toggle-label.on-ysf  { color: var(--violet); }
+.toggle-label.on-dmr { color: var(--amber); }
+.toggle-label.on-ysf { color: var(--violet); }
 .toggle-status { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; color: var(--text-dim); min-width: 3rem; text-align: right; transition: color .3s; }
 .toggle-status.on { color: var(--green); }
 .sw { position: relative; width: 56px; height: 28px; flex-shrink: 0; cursor: pointer; }
 .sw input { opacity: 0; width: 0; height: 0; position: absolute; }
 .sw-track { position: absolute; inset: 0; border-radius: 2px; background: #1a2535; border: 2px solid #999999; transition: background .3s, border-color .3s, box-shadow .3s; }
 .sw-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #e95c04; box-shadow: 0 1px 4px rgba(0,0,0,.5); transition: transform .3s cubic-bezier(.4,0,.2,1), background .3s, box-shadow .3s; }
-.sw.dmr input:checked ~ .sw-track { border-radius: 2px; background: #1a2535; border: 2px solid #999999; }
-.sw.dmr input:checked ~ .sw-knob { transform: translateX(28px); background: var(--green); box-shadow: 0 0 8px rgba(0,255,159,.6); }
-.sw.ysf input:checked ~ .sw-track { border-radius: 2px; background: #1a2535; border: 2px solid #999999; }
-.sw.ysf input:checked ~ .sw-knob { transform: translateX(28px); background: var(--green); box-shadow: 0 0 8px rgba(0,255,159,.6); }
-.sw.dstar input:checked ~ .sw-track { border-radius: 2px; background: #1a2535; border: 2px solid #999999; }
-.sw.dstar input:checked ~ .sw-knob { transform: translateX(28px); background: var(--green); box-shadow: 0 0 8px rgba(0,255,159,.6); }
+.sw.dmr input:checked ~ .sw-track, .sw.ysf input:checked ~ .sw-track, .sw.dstar input:checked ~ .sw-track { border-radius: 2px; background: #1a2535; border: 2px solid #999999; }
+.sw.dmr input:checked ~ .sw-knob, .sw.ysf input:checked ~ .sw-knob, .sw.dstar input:checked ~ .sw-knob { transform: translateX(28px); background: var(--green); box-shadow: 0 0 8px rgba(0,255,159,.6); }
 .sw-busy-dot { display: none; position: absolute; top: 50%; right: -18px; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--amber); border-top-color: transparent; animation: spin .7s linear infinite; }
 .sw.busy .sw-busy-dot { display: block; }
 @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
@@ -547,8 +348,6 @@ button.btn-header { font-family: var(--font-mono); }
 .ini-btn.edit.ysf:hover { border-color: var(--violet); background: rgba(181,122,255,.08); }
 .ini-btn.view.ysf { color: #c9a0ff; border-color: rgba(181,122,255,.2); }
 .ini-btn.view.ysf:hover { border-color: var(--violet); background: rgba(181,122,255,.06); }
-
-/* ── Display rows ─────────────────────────────────────────────── */
 .display-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 2rem 0; align-items: start; }
 @media (max-width:900px) { .display-row { grid-template-columns: 1fr; } }
 .panel-label { font-family: var(--font-mono); font-size: .7rem; letter-spacing: .15em; color: var(--amber); text-transform: uppercase; margin-bottom: .5rem; }
@@ -592,18 +391,25 @@ button.btn-header { font-family: var(--font-mono); }
 .nx-callsign.ysf { color: var(--violet); text-shadow: 0 0 20px rgba(181,122,255,.6); }
 .nx-name { font-family: var(--font-ui); font-weight: 500; font-size: 1.2rem; color: var(--cyan); letter-spacing: .18em; text-transform: uppercase; opacity: .9; margin-top: .15rem; }
 .nx-name.ysf { color: #d4a8ff; }
-
-/* ── Nextion info bar (Port / FRX / FTX / IP) ────────────────── */
 .nx-infobar { position: absolute; top: 30px; left: 0; right: 0; height: 26px; background: rgba(0,0,0,.35); border-bottom: 1px solid #0d2030; display: flex; align-items: center; justify-content: space-around; padding: 0 3rem; gap: 1rem; z-index: 2; }
 .nx-info-item { display: flex; align-items: center; gap: .4rem; }
 .nx-info-lbl { font-family: var(--font-mono); font-size: .58rem; color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; }
 .nx-info-val { font-family: var(--font-mono); font-size: .72rem; color: var(--text); letter-spacing: .06em; font-weight: bold; }
-.nx-info-val.cyan  { color: var(--cyan); }
+.nx-info-val.cyan { color: var(--cyan); }
 .nx-info-val.amber { color: var(--amber); }
 .nx-info-val.green { color: var(--green); }
 .nx-infobar-ysf { background: rgba(0,0,0,.4); border-bottom: 1px solid #1a0d30; }
-
-/* ── Last Heard ───────────────────────────────────────────────── */
+/* ── Nextion D-STAR ── */
+.nextion-dstar { background: #06100e; border: 2px solid #004a4a; border-radius: 6px; box-shadow: 0 0 0 1px #002030, inset 0 0 40px rgba(0,229,255,.04), 0 0 30px rgba(0,229,255,.12); position: relative; overflow: hidden; height: 240px; display: flex; align-items: center; justify-content: center; }
+.nextion-dstar::before,.nextion-dstar::after { content: '◈'; position: absolute; font-size: .6rem; color: #004a4a; }
+.nextion-dstar::before { top: .5rem; left: .7rem; }
+.nextion-dstar::after { bottom: .5rem; right: .7rem; }
+.nx-topbar.dstar-bar { background: #0a1a1a; border-bottom: 1px solid #004a4a; color: #006070; }
+.nx-topbar.dstar-bar .nx-mode { color: #00e5ff; opacity: .8; }
+.nx-botbar.dstar-bar { background: #06100e; border-top: 1px solid #004a4a; color: #006070; }
+.nx-infobar-dstar { background: rgba(0,0,0,.4); border-bottom: 1px solid #003040; }
+.nx-callsign.dstar { color: #00e5ff; text-shadow: 0 0 20px rgba(0,229,255,.6); }
+.nx-name.dstar { color: #80f0ff; }
 .lh-panel { background: var(--surface); border: 3px solid #1a3a4a; border-radius: 6px; display: flex; flex-direction: column; }
 .lh-header { background: #1c1c24; border-bottom: 1px solid var(--border); padding: .4rem 1rem; display: grid; grid-template-columns: 1.1fr 1.5fr .7fr .7fr .5fr; gap: .3rem; font-family: var(--font-mono); font-size: .6rem; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; }
 .lh-body { flex: 1; overflow-y: auto; }
@@ -632,10 +438,8 @@ button.btn-header { font-family: var(--font-mono); }
 .lh-tx-dot-ysf { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); box-shadow: 0 0 6px var(--violet); animation: pulse 1s infinite; flex-shrink: 0; }
 .lh-call-ysf { font-family: var(--font-mono); font-size: .82rem; color: var(--violet); letter-spacing: .05em; font-weight: bold; }
 #ysfLastHeardPanel { grid-column: 2; }
-#ysfDisplayPanel    { grid-column: 2; }
+#ysfDisplayPanel { grid-column: 2; }
 @media (max-width:900px) { #ysfLastHeardPanel { grid-column: 1; } #ysfDisplayPanel { grid-column: 1; } }
-
-/* ── Logs ─────────────────────────────────────────────────────── */
 .log-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 @media (max-width:900px) { .log-grid { grid-template-columns: 1fr; } }
 .log-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
@@ -652,8 +456,6 @@ button.btn-header { font-family: var(--font-mono); }
 .ln-warn { color: var(--amber); }
 .ln-err { color: var(--red); }
 .ln-ok { color: var(--green-dim,#00cc7a); }
-
-/* ── Modals ───────────────────────────────────────────────────── */
 .restore-modal,.install-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 9000; align-items: center; justify-content: center; }
 .restore-modal.open,.install-modal.open { display: flex; }
 .restore-box,.install-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; min-width: 380px; max-width: 90vw; }
@@ -673,8 +475,6 @@ button.btn-header { font-family: var(--font-mono); }
 .restore-msg.loading { color: var(--amber); border-color: var(--amber); background: rgba(255,179,0,.06); }
 .install-output { font-family: var(--font-mono); font-size: .72rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; display: none; }
 .install-output.visible { display: block; }
-
-/* ── Dropdown actualizaciones ─────────────────────────────────── */
 .dropdown-wrap { position: relative; display: inline-block; }
 .dropdown-menu-custom { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 220px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; padding-top: .4rem; }
 .dropdown-wrap:hover .dropdown-menu-custom { display: block; }
@@ -682,16 +482,25 @@ button.btn-header { font-family: var(--font-mono); }
 .dropdown-item-custom { display: block; width: 100%; padding: .55rem 1rem; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: none; border: none; cursor: pointer; text-align: left; transition: background .15s, color .15s; border-bottom: 1px solid var(--border); }
 .dropdown-item-custom:last-child { border-bottom: none; }
 .dropdown-item-custom:hover { background: rgba(0,212,255,.08); color: var(--cyan); }
-
-/* ── Modal consola actualización ─────────────────────────────── */
 .update-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9500; align-items: center; justify-content: center; }
 .update-modal.open { display: flex; }
 .update-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; width: 680px; max-width: 95vw; }
 .update-title { font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1rem; }
 .update-console { font-family: var(--font-mono); font-size: .75rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; }
-.update-console .ok  { color: var(--green); }
+.update-console .ok { color: var(--green); }
 .update-console .err { color: var(--red); }
 .update-console .inf { color: #7a9ab5; }
+/* ── Terminal ── */
+.xterm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:9600; align-items:center; justify-content:center; }
+.xterm-modal.open { display:flex; }
+.xterm-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:1.5rem; width:780px; max-width:95vw; }
+.xterm-title { font-family:var(--font-mono); font-size:.8rem; color:var(--cyan); letter-spacing:.12em; text-transform:uppercase; margin-bottom:1rem; }
+.xterm-out { font-family:var(--font-mono); font-size:.75rem; color:#7a9ab5; background:#060c10; border:1px solid var(--border); border-radius:4px; padding:.8rem; height:340px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; margin-bottom:.6rem; }
+.xterm-out::-webkit-scrollbar{width:4px;} .xterm-out::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.xterm-row { display:flex; align-items:center; gap:.5rem; background:#060c10; border:1px solid var(--border); border-radius:4px; padding:.5rem .8rem; margin-bottom:1rem; }
+.xterm-pr { font-family:var(--font-mono); font-size:.78rem; color:#00ff9f; white-space:nowrap; }
+.xterm-inp { flex:1; background:transparent; border:none; outline:none; font-family:var(--font-mono); font-size:.78rem; color:#c9d1d9; caret-color:#00ff9f; }
+.xt-cmd{color:#c9d1d9;} .xt-out{color:#7a9ab5;} .xt-err{color:#f85149;}
 </style>
 </head>
 <body>
@@ -713,52 +522,37 @@ button.btn-header { font-family: var(--font-mono); }
   </div>
 </div>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 </div>
 </header>
 <main class="ctrl-body">
-
-<!-- ── Station Card — datos dinámicos desde MMDVMHost.ini ── -->
 <div class="station-card">
-    <div class="station-card-main">
-        <div class="station-callsign" id="scCallsign">📡 —</div>
-    </div>
-        <div class="station-divider" style="height:50px;"></div>
-        <div class="station-meta-item"><span class="station-meta-label">🖥️ CPU</span><span class="station-meta-value" id="siCpu" style="color:var(--green);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">🌡️ Temp</span><span class="station-meta-value" id="siTemp" style="color:var(--amber);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💾 RAM usada</span><span class="station-meta-value" id="siRam" style="color:var(--cyan);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💾 RAM libre</span><span class="station-meta-value" id="siRamFree" style="color:var(--text);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💿 Disco usado</span><span class="station-meta-value" id="siDisk" style="color:var(--amber);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💿 Disco libre</span><span class="station-meta-value" id="siDiskFree" style="color:var(--green);">—</span></div>
-    </div>
+    <div class="station-card-main"><div class="station-callsign" id="scCallsign">📡 —</div></div>
+    <div class="station-divider" style="height:50px;"></div>
+    <div class="station-meta-item"><span class="station-meta-label">🖥️ CPU</span><span class="station-meta-value" id="siCpu" style="color:var(--green);">—</span></div>
+    <div class="station-meta-item"><span class="station-meta-label">🌡️ Temp</span><span class="station-meta-value" id="siTemp" style="color:var(--amber);">—</span></div>
+    <div class="station-meta-item"><span class="station-meta-label">💾 RAM usada</span><span class="station-meta-value" id="siRam" style="color:var(--cyan);">—</span></div>
+    <div class="station-meta-item"><span class="station-meta-label">💾 RAM libre</span><span class="station-meta-value" id="siRamFree" style="color:var(--text);">—</span></div>
+    <div class="station-meta-item"><span class="station-meta-label">💿 Disco usado</span><span class="station-meta-value" id="siDisk" style="color:var(--amber);">—</span></div>
+    <div class="station-meta-item"><span class="station-meta-label">💿 Disco libre</span><span class="station-meta-value" id="siDiskFree" style="color:var(--green);">—</span></div>
 </div>
-
 <div class="status-bar">
 <div class="status-item"><div class="dot" id="dot-mosquitto"></div><span>Mosquitto</span></div>
 <div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
 <div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
-
 <div class="section-divider"></div>
 <div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
 <div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
-
 <div class="section-divider"></div>
 <div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
 <div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGateway</span></div>
-
 </div>
-
 <div class="controls-section">
-  <!-- ── DMR card ── -->
   <div class="service-card">
     <div class="service-card-label dmr">▸ DMR · MMDVMHost + DMRGateway</div>
     <div class="toggle-row">
       <span class="toggle-label" id="dmrToggleLabel">DMR</span>
-      <label class="sw dmr" id="swDMR">
-        <input type="checkbox" id="chkDMR" onchange="toggleServices(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
+      <label class="sw dmr" id="swDMR"><input type="checkbox" id="chkDMR" onchange="toggleServices(this)"><span class="sw-track"></span><span class="sw-knob"></span><span class="sw-busy-dot"></span></label>
       <span class="toggle-status" id="dmrToggleStatus">OFF</span>
     </div>
     <div class="auto-badge" id="autoRefreshBadge" style="display:none"><div class="dot-sm"></div> auto-refresh 3s</div>
@@ -771,18 +565,11 @@ button.btn-header { font-family: var(--font-mono); }
       <a href="edit_ini.php?file=dmrgateway" class="ini-btn view" style="flex:1;justify-content:center;color:var(--amber);border-color:rgba(255,179,0,.3);">📄 EDITAR FICHERO DMRGateway.ini</a>
     </div>
   </div>
-
-  <!-- ── C4FM card ── -->
   <div class="service-card">
     <div class="service-card-label ysf">▸ C4FM · MMDVMHOST + YSFGATEWAY</div>
     <div class="toggle-row">
       <span class="toggle-label" id="ysfToggleLabel">C4FM</span>
-      <label class="sw ysf" id="swYSF">
-        <input type="checkbox" id="chkYSF" onchange="toggleYSF(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
+      <label class="sw ysf" id="swYSF"><input type="checkbox" id="chkYSF" onchange="toggleYSF(this)"><span class="sw-track"></span><span class="sw-knob"></span><span class="sw-busy-dot"></span></label>
       <span class="toggle-status" id="ysfToggleStatus">OFF</span>
     </div>
     <div class="auto-badge ysf" id="ysfRefreshBadge" style="display:none"><div class="dot-sm"></div> C4FM activo</div>
@@ -795,18 +582,11 @@ button.btn-header { font-family: var(--font-mono); }
       <a href="edit_ini.php?file=ysfgateway" class="ini-btn view ysf" style="flex:1;justify-content:center;">📄 editar fichero YSFGateway.ini</a>
     </div>
   </div>
-
-  <!-- ── DStar card ── -->
   <div class="service-card" style="border-color:rgba(0,229,255,.25);">
     <div class="service-card-label" style="color:#00ff9f;">▸ D-STAR · MMDVMHost + DStarGateway</div>
     <div class="toggle-row">
       <span class="toggle-label" id="dstarToggleLabel">D-STAR</span>
-      <label class="sw dstar" id="swDSTAR">
-        <input type="checkbox" id="chkDSTAR" onchange="toggleDStar(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
+      <label class="sw dstar" id="swDSTAR"><input type="checkbox" id="chkDSTAR" onchange="toggleDStar(this)"><span class="sw-track"></span><span class="sw-knob"></span><span class="sw-busy-dot"></span></label>
       <span class="toggle-status" id="dstarToggleStatus">OFF</span>
     </div>
     <div class="auto-badge" id="dstarRefreshBadge" style="display:none;color:#00e5ff;"><div class="dot-sm" style="background:#00e5ff;"></div> D-STAR activo</div>
@@ -820,34 +600,39 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
   </div>
 </div>
-
+<!-- ── Row 1: DMR Display ── -->
 <div class="display-row">
   <div id="dmrDisplayPanel">
     <div class="panel-label">▸ DMR Display</div>
     <div class="nextion">
       <div class="nx-topbar"><span class="nx-mode">DMR · SIMPLEX</span><span id="nxStationLabel">EA3EIZ · ADER</span><span class="nx-tg" id="nxTG">—</span></div>
-      <div class="nx-infobar">
-        <span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="nxPort">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val cyan" id="nxFrx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val amber" id="nxFtx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val green" id="nxIp">—</span></span>
-      </div>
+      <div class="nx-infobar"><span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="nxPort">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val cyan" id="nxFrx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val amber" id="nxFtx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val green" id="nxIp">—</span></span></div>
       <div class="nx-vu" id="vuLeft"></div><div class="nx-vu right" id="vuRight"></div>
       <div class="nx-center" id="nxCenter"><div class="nx-clock" id="nxClock">00:00:00</div><div class="nx-date" id="nxDate">—</div></div>
       <div class="nx-txbar" id="nxTxBar"></div>
       <div class="nx-botbar"><span class="nx-dmrid" id="nxDmrid">—</span><span>SLOT <span id="nxSlot">—</span></span><span class="nx-source" id="nxSource"></span></div>
     </div>
   </div>
+</div>
+
+<!-- ── Row 2: D-STAR Display (izq) + C4FM Display (dcha) ── -->
+<div class="display-row" style="margin-top:1.2rem;">
+  <div id="dstarDisplayPanel" style="display:none;">
+    <div class="panel-label" style="color:#00e5ff;">▸ D-STAR Display</div>
+    <div class="nextion-dstar">
+      <div class="nx-topbar dstar-bar"><span class="nx-mode">D-STAR · DIGITAL</span><span style="color:#006070" id="dstarStationLabel">EA3EIZ · ADER</span><span style="color:#00b0c0;opacity:.85;min-width:5rem;text-align:right;font-size:.6rem;" id="dstarDest">CQCQCQ</span></div>
+      <div class="nx-infobar nx-infobar-dstar"><span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="dstarNxPort">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val" style="color:#00e5ff" id="dstarNxFrx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val" style="color:#00b0c0" id="dstarNxFtx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val" style="color:#80f0ff" id="dstarNxIp">—</span></span></div>
+      <div class="nx-vu" id="dstarVuLeft"></div><div class="nx-vu right" id="dstarVuRight"></div>
+      <div class="nx-center" id="dstarNxCenter"><div class="nx-clock" id="dstarNxClock" style="color:#00e5ff;">00:00:00</div><div class="nx-date" id="dstarNxDate" style="color:#009090;">—</div></div>
+      <div class="nx-txbar" id="dstarTxBar"></div>
+      <div class="nx-botbar dstar-bar"><span style="color:#006070;font-family:var(--font-mono);font-size:.65rem;">D-STAR · DIGITAL VOICE</span><span style="color:#006070;font-family:var(--font-mono);font-size:.65rem;">XRF266 B</span><span class="nx-source" id="dstarSource"></span></div>
+    </div>
+  </div>
   <div id="ysfDisplayPanel">
     <div class="panel-label ysf-label">▸ C4FM Display</div>
     <div class="nextion-ysf">
       <div class="nx-topbar ysf-bar"><span class="nx-mode">C4FM · YSF</span><span style="color:#6a3a9a" id="ysfStationLabel">EA3EIZ · ADER</span><span class="nx-dest" id="ysfDest">—</span></div>
-      <div class="nx-infobar nx-infobar-ysf">
-        <span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="ysfNxPort">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val" style="color:#d4a8ff" id="ysfNxFrx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val" style="color:#c084ff" id="ysfNxFtx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val" style="color:#9b6dff" id="ysfNxIp">—</span></span>
-      </div>
+      <div class="nx-infobar nx-infobar-ysf"><span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="ysfNxPort">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val" style="color:#d4a8ff" id="ysfNxFrx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val" style="color:#c084ff" id="ysfNxFtx">—</span></span><span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val" style="color:#9b6dff" id="ysfNxIp">—</span></span></div>
       <div class="nx-vu" id="ysfVuLeft"></div><div class="nx-vu right" id="ysfVuRight"></div>
       <div class="nx-center" id="ysfNxCenter"><div class="nx-clock" id="ysfNxClock" style="color:#c084ff;">00:00:00</div><div class="nx-date" id="ysfNxDate" style="color:#9b59d4;">—</div></div>
       <div class="nx-txbar" id="ysfTxBar"></div>
@@ -876,35 +661,41 @@ button.btn-header { font-family: var(--font-mono); }
 
 <!-- ── Logs ── -->
 <div class="log-grid" style="margin-top:2rem;">
-<!-- ▼▼▼ PANELES DMR — se ocultan cuando DMR está OFF ▼▼▼ -->
 <div id="dmrLogPanels" style="display:contents;">
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name">▸ MMDVMHost</span><button class="btn-clear" onclick="clearLog('logMmd')">limpiar</button></div><div class="log-output" id="logMmd">Esperando servicios…</div></div>
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name gw">▸ DMRGateway</span><button class="btn-clear" onclick="clearLog('logGw')">limpiar</button></div><div class="log-output" id="logGw">Esperando servicios…</div></div>
 </div>
-<!-- ▲▲▲ FIN PANELES DMR ▲▲▲ -->
-<!-- ▼▼▼ PANELES YSF — se ocultan cuando C4FM está OFF ▼▼▼ -->
 <div id="ysfLogPanels" style="display:contents;">
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#26c6da">▸ MMDVMHost YSF</span><button class="btn-clear" onclick="clearLog('logMmdvmYsf')">limpiar</button></div><div class="log-output" id="logMmdvmYsf">Esperando MMDVMHost YSF…</div></div>
 <div class="log-panel"><div class="log-panel-header"><span class="svc-name ysf">▸ YSFGateway</span><button class="btn-clear" onclick="clearLog('logYsf')">limpiar</button></div><div class="log-output" id="logYsf">Esperando YSFGateway…</div></div>
 </div>
-<!-- ▼▼▼ PANELES DSTAR — se ocultan cuando D-STAR está OFF ▼▼▼ -->
-<div id="dstarLogPanels" style="display:none;">
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#80f0ff;">▸ MMDVMHost DStar</span><button class="btn-clear" onclick="clearLog('logDstarMmd')">limpiar</button></div><div class="log-output" id="logDstarMmd">Esperando MMDVMHost DStar…</div></div>
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#00e5ff;">▸ DStarGateway</span><button class="btn-clear" onclick="clearLog('logDstarGw')">limpiar</button></div><div class="log-output" id="logDstarGw">Esperando DStarGateway…</div></div>
+<div id="dstarPanelMmd" class="log-panel" style="display:none;"><div class="log-panel-header"><span class="svc-name" style="color:#80f0ff;">▸ MMDVMHost DStar</span><button class="btn-clear" onclick="clearLog('logDstarMmd')">limpiar</button></div><div class="log-output" id="logDstarMmd">Esperando MMDVMHost DStar…</div></div>
+<div id="dstarPanelGw" class="log-panel" style="display:none;"><div class="log-panel-header"><span class="svc-name" style="color:#00e5ff;">▸ DStarGateway</span><button class="btn-clear" onclick="clearLog('logDstarGw')">limpiar</button></div><div class="log-output" id="logDstarGw">Esperando DStarGateway…</div></div>
 </div>
-<!-- ▲▲▲ FIN PANELES DSTAR ▲▲▲ -->
-</div>
-
 </main>
+
+<!-- Modal Terminal -->
+<div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
+<div class="xterm-box">
+  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
+  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
+</div>
+  <div class="xterm-row">
+    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
+    <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
+  </div>
+  <div class="restore-btns">
+    <button class="restore-btn-cancel" onclick="xtClose()">✖ Cerrar</button>
+  </div>
+</div>
+</div>
 
 <!-- Modal Actualización -->
 <div id="updateModal" class="update-modal">
 <div class="update-box">
 <div class="update-title" id="updateTitle">⬇ Actualizando…</div>
 <div class="update-console" id="updateConsole">Iniciando…</div>
-<div class="restore-btns">
-<button class="restore-btn-cancel" id="updateCloseBtn" onclick="closeUpdate()">✖ Cerrar</button>
-</div>
+<div class="restore-btns"><button class="restore-btn-cancel" id="updateCloseBtn" onclick="closeUpdate()">✖ Cerrar</button></div>
 </div>
 </div>
 
@@ -912,7 +703,7 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="restoreModal" class="restore-modal">
 <div class="restore-box">
 <div class="restore-title">📂 Restaurar configuración</div>
-<label class="restore-label" for="restoreFile">Selecciona fichero Copia_A108.zip</label>
+<label class="restore-label" for="restoreFile">Selecciona fichero Copia_PHP2.zip</label>
 <input type="file" id="restoreFile" accept=".zip" class="restore-file">
 <div class="restore-btns">
 <button class="restore-btn-ok" onclick="doRestore()">▶ Restaurar</button>
@@ -934,177 +725,61 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="installMsg" class="restore-msg"></div>
 </div>
 </div>
-
 <script>
 let refreshTimer=null,txTimer=null,vuTimer=null,ysfTimer=null,mmdvmYsfTimer=null,ysfTxTimer=null,ysfVuTimer=null,dstarTimer=null;
 let running=false,ysfRunning=false,mmdvmYsfRunning=false,dstarRunning=false,currentlyActive=false,ysfCurrentlyActive=false;
 let dmrLastActiveTs=0,ysfLastActiveTs=0;
 const DMR_IDLE_TIMEOUT=12000,YSF_IDLE_TIMEOUT=12000;
 
-// ── Station card desde MMDVMHost.ini ────────────────────────────────
-async function fetchStationInfo() {
-    try {
-        const r = await fetch('?action=station-info');
-        const d = await r.json();
-        document.getElementById('scCallsign').textContent = '📡 ' + d.callsign;
-        // Nextion DMR
-        const nxPort = document.getElementById('nxPort'); if(nxPort) nxPort.textContent = d.port    || '—';
-        const nxFrx  = document.getElementById('nxFrx');  if(nxFrx)  nxFrx.textContent  = d.freqRX  || '—';
-        const nxFtx  = document.getElementById('nxFtx');  if(nxFtx)  nxFtx.textContent  = d.freq    || '—';
-        const nxIp   = document.getElementById('nxIp');   if(nxIp)   nxIp.textContent   = d.ip      || '—';
-        // Nextion C4FM
-        const yNxPort = document.getElementById('ysfNxPort'); if(yNxPort) yNxPort.textContent = d.ysfPort    || '—';
-        const yNxFrx  = document.getElementById('ysfNxFrx');  if(yNxFrx)  yNxFrx.textContent  = d.ysfFreqRX || '—';
-        const yNxFtx  = document.getElementById('ysfNxFtx');  if(yNxFtx)  yNxFtx.textContent  = d.ysfFreqTX || '—';
-        const yNxIp   = document.getElementById('ysfNxIp');   if(yNxIp)   yNxIp.textContent   = d.ysfIp     || '—';
-        // Labels Nextion topbar
-        const label = d.callsign + ' · ADER';
-        const nx = document.getElementById('nxStationLabel');  if(nx) nx.textContent = label;
-        const yx = document.getElementById('ysfStationLabel'); if(yx) yx.textContent = label;
-    } catch(e) { console.warn('station-info error:', e); }
-}
+async function fetchStationInfo(){try{const r=await fetch('?action=station-info');const d=await r.json();document.getElementById('scCallsign').textContent='📡 '+d.callsign;const nxPort=document.getElementById('nxPort');if(nxPort)nxPort.textContent=d.port||'—';const nxFrx=document.getElementById('nxFrx');if(nxFrx)nxFrx.textContent=d.freqRX||'—';const nxFtx=document.getElementById('nxFtx');if(nxFtx)nxFtx.textContent=d.freq||'—';const nxIp=document.getElementById('nxIp');if(nxIp)nxIp.textContent=d.ip||'—';const yNxPort=document.getElementById('ysfNxPort');if(yNxPort)yNxPort.textContent=d.ysfPort||'—';const yNxFrx=document.getElementById('ysfNxFrx');if(yNxFrx)yNxFrx.textContent=d.ysfFreqRX||'—';const yNxFtx=document.getElementById('ysfNxFtx');if(yNxFtx)yNxFtx.textContent=d.ysfFreqTX||'—';const yNxIp=document.getElementById('ysfNxIp');if(yNxIp)yNxIp.textContent=d.ysfIp||'—';const label=d.callsign+' · ADER';const nx=document.getElementById('nxStationLabel');if(nx)nx.textContent=label;const yx=document.getElementById('ysfStationLabel');if(yx)yx.textContent=label;const dx=document.getElementById('dstarStationLabel');if(dx)dx.textContent=label;const dNxPort=document.getElementById('dstarNxPort');if(dNxPort)dNxPort.textContent=d.dstarPort||'—';const dNxFrx=document.getElementById('dstarNxFrx');if(dNxFrx)dNxFrx.textContent=d.dstarFreqRX||'—';const dNxFtx=document.getElementById('dstarNxFtx');if(dNxFtx)dNxFtx.textContent=d.dstarFreqTX||'—';const dNxIp=document.getElementById('dstarNxIp');if(dNxIp)dNxIp.textContent=d.dstarIp||'—';}catch(e){console.warn('station-info error:',e);}}
 
-function getFlagByCall(callsign) {
-    if (!callsign) return '';
-    const cs = callsign.toUpperCase().trim();
-    const prefixes = [
-        {re:/^EA[0-9]|EB|EC|ED|EE|EF|EG|EH/,flag:'🇪🇸'},{re:/^CT|CU|CV|CQ/,flag:'🇵🇹'},
-        {re:/^F[A-Z]|FT[0-9A-Z]|FM|FO|FH|FJ|FK|FL|FP|FR|FS/,flag:'🇫🇷'},{re:/^I[0-9]|IK|IW|IZ/,flag:'🇮🇹'},
-        {re:/^G[0-9]|M[0-9]|2E[0-9]|2[0-9]|GB|MJ|MU/,flag:'🇬🇧'},{re:/^D[ALM]|DA|DB|DC|DD|DE|DF|DG|DH|DI|DJ|DK|DL|DM|DN|DO|DP|DQ|DR/,flag:'🇩🇪'},
-        {re:/^K[0-9]|W[0-9]|N[0-9]|AA|AB|AC|AD|AE|AF/,flag:'🇺🇸'},{re:/^VE[0-9]|VA[0-9]|VO[0-9]|VY[0-9]/,flag:'🇨🇦'},
-        {re:/^PY[0-9]|PU|PV|PW|PX/,flag:'🇧🇷'},{re:/^LU[0-9]|LV|LW|LX/,flag:'🇦🇷'},
-        {re:/^JA[0-9]|JB|JC|JD|JE|JF|JG|JH|JI|JJ|JK|JL|JM|JN|JO|JP|JQ|JR|JS|JT|JU|JV|JW|JX|JY|JZ/,flag:'🇯🇵'},
-        {re:/^VK[0-9]|VL|VM|VN|VO|VP|VQ|VR|VS|VT|VU|VV|VW|VX|VY|VZ/,flag:'🇦🇺'},{re:/^ZS[0-9]|ZT|ZU|ZV|ZW|ZX|ZY|ZZ/,flag:'🇿🇦'},
-        {re:/^OH[0-9]|OG|OI|OJ|OK|OL|OM|ON|OO|OP|OQ|OR|OS|OT|OU|OV|OW|OX|OY|OZ/,flag:'🇫🇮'},
-        {re:/^PA[0-9]|PB|PC|PD|PE|PF|PG|PH|PI|PJ|PK|PL|PM|PN|PO|PP|PQ|PR|PS|PT|PU|PV|PW|PX|PY|PZ/,flag:'🇳🇱'},
-        {re:/^HB[0-9]|HB9/,flag:'🇨🇭'},{re:/^OE[0-9]/,flag:'🇦🇹'},
-        {re:/^SP[0-9]|SQ|SR/,flag:'🇵🇱'},{re:/^UA[0-9]|UB|UC|UD|UE|UF|UG|UH|UI|UJ|UK|UL|UM|UN|UO|UP|UQ|UR|US|UT|UU|UV|UW|UX|UY|UZ/,flag:'🇷🇺'},
-        {re:/^SV[0-9]|SW|SX|SY|SZ/,flag:'🇬🇷'},{re:/^LY[0-9]|LZ/,flag:'🇱🇹'},{re:/^9A[0-9]/,flag:'🇭🇷'},
-    ];
-    for (const p of prefixes) { if (p.re.test(cs)) return p.flag; }
-    return '🌐';
-}
+function getFlagByCall(callsign){if(!callsign)return'';const cs=callsign.toUpperCase().trim();const prefixes=[{re:/^EA[0-9]|EB|EC|ED|EE|EF|EG|EH/,flag:'🇪🇸'},{re:/^CT|CU|CV|CQ/,flag:'🇵🇹'},{re:/^F[A-Z]|FT[0-9A-Z]|FM|FO|FH|FJ|FK|FL|FP|FR|FS/,flag:'🇫🇷'},{re:/^I[0-9]|IK|IW|IZ/,flag:'🇮🇹'},{re:/^G[0-9]|M[0-9]|2E[0-9]|2[0-9]|GB|MJ|MU/,flag:'🇬🇧'},{re:/^D[ALM]|DA|DB|DC|DD|DE|DF|DG|DH|DI|DJ|DK|DL|DM|DN|DO|DP|DQ|DR/,flag:'🇩🇪'},{re:/^K[0-9]|W[0-9]|N[0-9]|AA|AB|AC|AD|AE|AF/,flag:'🇺🇸'},{re:/^VE[0-9]|VA[0-9]|VO[0-9]|VY[0-9]/,flag:'🇨🇦'},{re:/^PY[0-9]|PU|PV|PW|PX/,flag:'🇧🇷'},{re:/^LU[0-9]|LV|LW|LX/,flag:'🇦🇷'},{re:/^JA[0-9]|JB|JC|JD|JE|JF|JG|JH|JI|JJ|JK|JL|JM|JN|JO|JP|JQ|JR|JS|JT|JU|JV|JW|JX|JY|JZ/,flag:'🇯🇵'},{re:/^VK[0-9]|VL|VM|VN|VO|VP|VQ|VR|VS|VT|VU|VV|VW|VX|VY|VZ/,flag:'🇦🇺'},{re:/^ZS[0-9]|ZT|ZU|ZV|ZW|ZX|ZY|ZZ/,flag:'🇿🇦'},{re:/^OH[0-9]|OG|OI|OJ|OK|OL|OM|ON|OO|OP|OQ|OR|OS|OT|OU|OV|OW|OX|OY|OZ/,flag:'🇫🇮'},{re:/^PA[0-9]|PB|PC|PD|PE|PF|PG|PH|PI|PJ|PK|PL|PM|PN|PO|PP|PQ|PR|PS|PT|PU|PV|PW|PX|PY|PZ/,flag:'🇳🇱'},{re:/^HB[0-9]|HB9/,flag:'🇨🇭'},{re:/^OE[0-9]/,flag:'🇦🇹'},{re:/^SP[0-9]|SQ|SR/,flag:'🇵🇱'},{re:/^UA[0-9]|UB|UC|UD|UE|UF|UG|UH|UI|UJ|UK|UL|UM|UN|UO|UP|UQ|UR|US|UT|UU|UV|UW|UX|UY|UZ/,flag:'🇷🇺'},{re:/^SV[0-9]|SW|SX|SY|SZ/,flag:'🇬🇷'},{re:/^LY[0-9]|LZ/,flag:'🇱🇹'},{re:/^9A[0-9]/,flag:'🇭🇷'}];for(const p of prefixes){if(p.re.test(cs))return p.flag;}return'🌐';}
 
 function buildVU(id){const el=document.getElementById(id);for(let i=0;i<18;i++){const d=document.createElement('div');d.className='nx-vu-bar';d.id=`${id}-${i}`;el.appendChild(d);}}
 buildVU('vuLeft');buildVU('vuRight');buildVU('ysfVuLeft');buildVU('ysfVuRight');
 
-function animateVU(on,prefix){
-    clearInterval(prefix==='ysf'?ysfVuTimer:vuTimer);
-    const ids=prefix==='ysf'?['ysfVuLeft','ysfVuRight']:['vuLeft','vuRight'];
-    ids.forEach(id=>{for(let i=0;i<18;i++)document.getElementById(`${id}-${i}`).className='nx-vu-bar';});
-    if(!on)return;
-    const timer=setInterval(()=>{ids.forEach(id=>{const lvl=Math.floor(Math.random()*16)+1;for(let i=0;i<18;i++){let cls='nx-vu-bar';if(i<lvl)cls+=prefix==='ysf'?(i<10?' lit-v':i<14?' lit-vd':' lit-r'):(i<10?' lit-g':i<14?' lit-a':' lit-r');document.getElementById(`${id}-${i}`).className=cls;}});},80);
-    if(prefix==='ysf')ysfVuTimer=timer;else vuTimer=timer;
-}
+function animateVU(on,prefix){clearInterval(prefix==='ysf'?ysfVuTimer:vuTimer);const ids=prefix==='ysf'?['ysfVuLeft','ysfVuRight']:['vuLeft','vuRight'];ids.forEach(id=>{for(let i=0;i<18;i++)document.getElementById(`${id}-${i}`).className='nx-vu-bar';});if(!on)return;const timer=setInterval(()=>{ids.forEach(id=>{const lvl=Math.floor(Math.random()*16)+1;for(let i=0;i<18;i++){let cls='nx-vu-bar';if(i<lvl)cls+=prefix==='ysf'?(i<10?' lit-v':i<14?' lit-vd':' lit-r'):(i<10?' lit-g':i<14?' lit-a':' lit-r');document.getElementById(`${id}-${i}`).className=cls;}});},80);if(prefix==='ysf')ysfVuTimer=timer;else vuTimer=timer;}
 
-function updateClock(){
-    const now=new Date();
-    const hms=now.toLocaleTimeString('es-ES');
-    const date=now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
-    if(!currentlyActive){const clk=document.getElementById('nxClock');if(clk){clk.textContent=hms;document.getElementById('nxDate').textContent=date;}}
-    if(!ysfCurrentlyActive){const yClk=document.getElementById('ysfNxClock');if(yClk){yClk.textContent=hms;document.getElementById('ysfNxDate').textContent=date;}}
-}
+function updateClock(){const now=new Date();const hms=now.toLocaleTimeString('es-ES');const date=now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();if(!currentlyActive){const clk=document.getElementById('nxClock');if(clk){clk.textContent=hms;document.getElementById('nxDate').textContent=date;}}if(!ysfCurrentlyActive){const yClk=document.getElementById('ysfNxClock');if(yClk){yClk.textContent=hms;document.getElementById('ysfNxDate').textContent=date;}}}
 setInterval(updateClock,1000);updateClock();
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// ── setDMRToggle — MODIFICADO: oculta/muestra paneles de log DMR ────
-function setDMRToggle(on){
-    const chk=document.getElementById('chkDMR'),lbl=document.getElementById('dmrToggleLabel'),sta=document.getElementById('dmrToggleStatus');
-    chk.checked=on;
-    lbl.className='toggle-label'+(on?' on-dmr':'');
-    sta.className='toggle-status'+(on?' on':'');
-    sta.textContent=on?'ON':'OFF';
-    document.getElementById('autoRefreshBadge').style.display=on?'flex':'none';
-    // Mostrar u ocultar los dos paneles de log DMR
-    document.getElementById('dmrLogPanels').style.display=on?'contents':'none';
-    document.getElementById('dmrLastHeardPanel').style.display=on?'':'none';
-    document.getElementById('dmrDisplayPanel').style.display=on?'':'none';
-}
-
-function setYSFToggle(on){const chk=document.getElementById('chkYSF'),lbl=document.getElementById('ysfToggleLabel'),sta=document.getElementById('ysfToggleStatus');chk.checked=on;lbl.className='toggle-label'+(on?' on-ysf':'');sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('ysfRefreshBadge').style.display=on?'flex':'none';
-    // Mostrar u ocultar los dos paneles de log YSF
-    document.getElementById('ysfLogPanels').style.display=on?'contents':'none';
-    document.getElementById('ysfLastHeardPanel').style.display=on?'':'none';
-    document.getElementById('ysfDisplayPanel').style.display=on?'':'none';
-}
+function setDMRToggle(on){const chk=document.getElementById('chkDMR'),lbl=document.getElementById('dmrToggleLabel'),sta=document.getElementById('dmrToggleStatus');chk.checked=on;lbl.className='toggle-label'+(on?' on-dmr':'');sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('autoRefreshBadge').style.display=on?'flex':'none';document.getElementById('dmrLogPanels').style.display=on?'contents':'none';document.getElementById('dmrLastHeardPanel').style.display=on?'':'none';document.getElementById('dmrDisplayPanel').style.display=on?'':'none';}
+function setYSFToggle(on){const chk=document.getElementById('chkYSF'),lbl=document.getElementById('ysfToggleLabel'),sta=document.getElementById('ysfToggleStatus');chk.checked=on;lbl.className='toggle-label'+(on?' on-ysf':'');sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('ysfRefreshBadge').style.display=on?'flex':'none';document.getElementById('ysfLogPanels').style.display=on?'contents':'none';document.getElementById('ysfLastHeardPanel').style.display=on?'':'none';document.getElementById('ysfDisplayPanel').style.display=on?'':'none';}
 
 function showIdle(){currentlyActive=false;animateVU(false,'dmr');document.getElementById('nxTxBar').classList.remove('active');document.getElementById('nxTG').textContent='—';document.getElementById('nxSlot').textContent='—';document.getElementById('nxDmrid').textContent='—';const src=document.getElementById('nxSource');src.textContent='';src.className='nx-source';document.getElementById('nxCenter').innerHTML='<div class="nx-clock" id="nxClock">00:00:00</div><div class="nx-date" id="nxDate">—</div>';updateClock();}
 function showActive(d){currentlyActive=true;animateVU(true,'dmr');document.getElementById('nxTxBar').classList.add('active');document.getElementById('nxTG').textContent=d.tg?'TG '+d.tg:'—';document.getElementById('nxSlot').textContent=d.slot||'—';document.getElementById('nxDmrid').textContent=d.dmrid||'—';const src=document.getElementById('nxSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else if(d.source==='NETWORK'){src.textContent='NET';src.className='nx-source net';}else{src.textContent='';src.className='nx-source';}const flag=getFlagByCall(d.callsign);document.getElementById('nxCenter').innerHTML=`<div class="nx-callsign">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name">${esc(d.name)}</div>`:'');}
-
 function showYSFIdle(){ysfCurrentlyActive=false;animateVU(false,'ysf');document.getElementById('ysfTxBar').className='nx-txbar';document.getElementById('ysfDest').textContent='—';document.getElementById('ysfProto').textContent='YSF';const src=document.getElementById('ysfSource');src.textContent='';src.className='nx-source';document.getElementById('ysfNxCenter').innerHTML='<div class="nx-clock" id="ysfNxClock" style="color:#c084ff;">00:00:00</div><div class="nx-date" id="ysfNxDate" style="color:#9b59d4;">—</div>';updateClock();}
 function showYSFActive(d){ysfCurrentlyActive=true;animateVU(true,'ysf');document.getElementById('ysfTxBar').className='nx-txbar active-ysf';document.getElementById('ysfDest').textContent=d.dest?d.dest:'ALL';const src=document.getElementById('ysfSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else if(d.source==='NETWORK'){src.textContent='NET';src.className='nx-source net';}else{src.textContent='';src.className='nx-source';}const flag=getFlagByCall(d.callsign);document.getElementById('ysfNxCenter').innerHTML=`<div class="nx-callsign ysf">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name ysf">${esc(d.name)}</div>`:'');}
 
 function renderLastHeard(list,activeCall){const body=document.getElementById('lhBody');if(!list||list.length===0){body.innerHTML='<div class="lh-empty">Sin actividad reciente</div>';return;}body.innerHTML=list.map(r=>{const isActive=activeCall&&r.callsign===activeCall;const srcCls=r.source==='RF'?'rf':'net',srcLbl=r.source==='RF'?'RF':'NET';const dot=isActive?'<span class="lh-tx-dot"></span>':'';const flag=getFlagByCall(r.callsign);return`<div class="lh-row${isActive?' lh-active':''}"><div class="lh-call-wrap">${dot}<span class="lh-call">${flag} ${esc(r.callsign)}</span></div><span class="lh-name">${esc(r.name||'—')}</span><span class="lh-tg">${esc(r.tg||'—')}</span><span class="lh-time">${esc(r.time||'—')}</span><span class="lh-src ${srcCls}">${srcLbl}</span></div>`;}).join('');}
 function renderYSFLastHeard(list,activeCall){const body=document.getElementById('ysfLhBody');if(!list||list.length===0){body.innerHTML='<div class="lh-empty">Sin actividad C4FM</div>';return;}body.innerHTML=list.map(r=>{const isActive=activeCall&&r.callsign===activeCall;const srcCls=r.source==='RF'?'rf':'net',srcLbl=r.source==='RF'?'RF':'NET';const dot=isActive?'<span class="lh-tx-dot-ysf"></span>':'';const flag=getFlagByCall(r.callsign);return`<div class="lh-row-ysf${isActive?' lh-active':''}"><div class="lh-call-wrap">${dot}<span class="lh-call-ysf">${flag} ${esc(r.callsign)}</span></div><span class="lh-name">${esc(r.name||'—')}</span><span class="lh-time">${esc(r.time||'—')}</span><span class="lh-src-ysf ${srcCls}">${srcLbl}</span></div>`;}).join('');}
 
-async function fetchTransmission(){
-    try{const r=await fetch('?action=transmission');const d=await r.json();
-        if(d.active){dmrLastActiveTs=Date.now();showActive(d);}
-        else{if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}
-        renderLastHeard(d.lastHeard||[],d.active?d.callsign:null);
-    }catch(e){if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}
-}
-
-async function fetchYSFTransmission(){
-    try{const r=await fetch('?action=ysf-transmission');const d=await r.json();
-        if(d.active){ysfLastActiveTs=Date.now();showYSFActive(d);}
-        else{if(ysfCurrentlyActive)showYSFIdle();}
-        renderYSFLastHeard(d.lastHeard||[],d.active?d.callsign:null);
-    }catch(e){if(ysfCurrentlyActive&&(Date.now()-ysfLastActiveTs)>YSF_IDLE_TIMEOUT)showYSFIdle();}
-}
+async function fetchTransmission(){try{const r=await fetch('?action=transmission');const d=await r.json();if(d.active){dmrLastActiveTs=Date.now();showActive(d);}else{if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}renderLastHeard(d.lastHeard||[],d.active?d.callsign:null);}catch(e){if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}}
+async function fetchYSFTransmission(){try{const r=await fetch('?action=ysf-transmission');const d=await r.json();if(d.active){ysfLastActiveTs=Date.now();showYSFActive(d);}else{if(ysfCurrentlyActive)showYSFIdle();}renderYSFLastHeard(d.lastHeard||[],d.active?d.callsign:null);}catch(e){if(ysfCurrentlyActive&&(Date.now()-ysfLastActiveTs)>YSF_IDLE_TIMEOUT)showYSFIdle();}}
 
 async function checkStatus(){try{const r=await fetch('?action=status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';setDot('dot-gateway',gw?'active':'off');setDot('dot-mmdvm',mmd?'active':'off');setDot('dot-mosquitto',gw?'active':'off');running=gw||mmd;setDMRToggle(running);if(running)startRefresh();}catch(e){}}
 async function checkYSFStatus(){try{const r=await fetch('?action=ysf-status');const d=await r.json();ysfRunning=d.ysf==='active';setDot('dot-ysf',ysfRunning?'active':'off');setYSFToggle(ysfRunning||mmdvmYsfRunning);}catch(e){}}
 async function checkMMDVMYSFStatus(){try{const r=await fetch('?action=mmdvmysf-status');const d=await r.json();mmdvmYsfRunning=d.mmdvmysf==='active';setDot('dot-mmdvmysf',mmdvmYsfRunning?'active':'off');setYSFToggle(ysfRunning||mmdvmYsfRunning);}catch(e){}}
 function setDot(id,state){document.getElementById(id).className='dot'+(state==='active'?' active':state==='error'?' error':'');}
 
-function setDSTARToggle(on){
-    const chk=document.getElementById('chkDSTAR'),lbl=document.getElementById('dstarToggleLabel'),sta=document.getElementById('dstarToggleStatus');
-    chk.checked=on;
-    lbl.style.color=on?'#00e5ff':'';
-    sta.className='toggle-status'+(on?' on':'');
-    sta.textContent=on?'ON':'OFF';
-    document.getElementById('dstarRefreshBadge').style.display=on?'flex':'none';
-    document.getElementById('dstarLogPanels').style.display=on?'contents':'none';
-}
-async function checkDStarStatus(){
-    try{const r=await fetch('?action=dstar-status');const d=await r.json();
-        const gw=d.gateway==='active',mmd=d.mmdvm==='active';
-        setDot('dot-dstargw',gw?'active':'off');
-        setDot('dot-dstarmmd',mmd?'active':'off');
-        dstarRunning=(gw||mmd)&&!d.stopped;
-        setDSTARToggle(dstarRunning);
-        if(dstarRunning)startDStarLogs();
-    }catch(e){}
-}
-async function toggleDStar(chk){
-    const wasOn=!chk.checked;const sw=document.getElementById('swDSTAR');chk.checked=wasOn;sw.classList.add('busy');
-    try{
-        await fetch(wasOn?'?action=dstar-stop':'?action=dstar-start');
-        // Polling hasta que el estado cambie (máx 15 intentos x 1s)
-        let ok=false;
-        for(let i=0;i<15;i++){
-            await new Promise(r=>setTimeout(r,1000));
-            const r=await fetch('?action=dstar-status');const d=await r.json();
-            const gw=d.gateway==='active',mmd=d.mmdvm==='active';
-            const isOn=(gw||mmd)&&!d.stopped;
-            if(wasOn && !isOn){ok=true;setDot('dot-dstargw','off');setDot('dot-dstarmmd','off');dstarRunning=false;setDSTARToggle(false);stopDStarLogs();clearLog('logDstarGw');clearLog('logDstarMmd');break;}
-            if(!wasOn && isOn){ok=true;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=true;setDSTARToggle(true);startDStarLogs();break;}
-        }
-        if(!ok){const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';dstarRunning=(gw||mmd)&&!d.stopped;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');setDSTARToggle(dstarRunning);}
-    }catch(e){console.warn('toggleDStar error:',e);}
-    finally{sw.classList.remove('busy');}
-}
-async function fetchDStarLogs(){
-    try{const r=await fetch('?action=dstar-logs&lines=15');const d=await r.json();
-        ['logDstarGw:gateway','logDstarMmd:mmdvm'].forEach(pair=>{
-            const[id,key]=pair.split(':');const el=document.getElementById(id);
-            const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;
-            el.innerHTML=colorize(d[key]);if(atBot)el.scrollTop=el.scrollHeight;
-        });
-    }catch(e){}
-}
+function setDSTARToggle(on){const chk=document.getElementById('chkDSTAR'),lbl=document.getElementById('dstarToggleLabel'),sta=document.getElementById('dstarToggleStatus');chk.checked=on;lbl.style.color=on?'#00e5ff':'';sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('dstarRefreshBadge').style.display=on?'flex':'none';document.getElementById('dstarPanelMmd').style.display=on?'':'none';document.getElementById('dstarPanelGw').style.display=on?'':'none';document.getElementById('dstarDisplayPanel').style.display=on?'':'none';}
+
+let dstarVuTimer=null,dstarCurrentlyActive=false,dstarTxTimer2=null;
+function buildDStarVU(){['dstarVuLeft','dstarVuRight'].forEach(id=>{const el=document.getElementById(id);for(let i=0;i<18;i++){const d=document.createElement('div');d.className='nx-vu-bar';d.id=`${id}-${i}`;el.appendChild(d);}});}
+buildDStarVU();
+function animateDStarVU(on){clearInterval(dstarVuTimer);['dstarVuLeft','dstarVuRight'].forEach(id=>{for(let i=0;i<18;i++)document.getElementById(`${id}-${i}`).className='nx-vu-bar';});if(!on)return;dstarVuTimer=setInterval(()=>{['dstarVuLeft','dstarVuRight'].forEach(id=>{const lvl=Math.floor(Math.random()*16)+1;for(let i=0;i<18;i++){let cls='nx-vu-bar';if(i<lvl)cls+=i<10?' lit-g':i<14?' lit-a':' lit-r';document.getElementById(`${id}-${i}`).className=cls;}});},80);}
+function showDStarIdle(){dstarCurrentlyActive=false;animateDStarVU(false);document.getElementById('dstarTxBar').className='nx-txbar';const src=document.getElementById('dstarSource');src.textContent='';src.className='nx-source';document.getElementById('dstarNxCenter').innerHTML='<div class="nx-clock" id="dstarNxClock" style="color:#00e5ff;">00:00:00</div><div class="nx-date" id="dstarNxDate" style="color:#009090;">—</div>';updateDStarClock();}
+function showDStarActive(d){dstarCurrentlyActive=true;animateDStarVU(true);document.getElementById('dstarTxBar').className='nx-txbar active';document.getElementById('dstarTxBar').style.background='linear-gradient(90deg,transparent,#00e5ff,transparent)';const src=document.getElementById('dstarSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else{src.textContent='NET';src.className='nx-source net';}const flag=getFlagByCall(d.callsign.replace(/\/.*$/,''));document.getElementById('dstarNxCenter').innerHTML=`<div class="nx-callsign dstar">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name dstar">${esc(d.name)}</div>`:'');}
+function updateDStarClock(){if(!dstarCurrentlyActive){const now=new Date();const clk=document.getElementById('dstarNxClock');if(clk){clk.textContent=now.toLocaleTimeString('es-ES');document.getElementById('dstarNxDate').textContent=now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();}}}
+setInterval(updateDStarClock,1000);updateDStarClock();
+async function fetchDStarTransmission(){try{const r=await fetch('?action=dstar-transmission');const d=await r.json();if(d.active)showDStarActive(d);else showDStarIdle();}catch(e){}}
+function startDStarTransmissionPoll(){fetchDStarTransmission();dstarTxTimer2=setInterval(fetchDStarTransmission,4000);}
+function stopDStarTransmissionPoll(){clearInterval(dstarTxTimer2);dstarTxTimer2=null;}
+async function checkDStarStatus(){try{const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=(gw||mmd)&&!d.stopped;setDSTARToggle(dstarRunning);if(dstarRunning){startDStarLogs();startDStarTransmissionPoll();}}catch(e){}}
+async function toggleDStar(chk){const wasOn=!chk.checked;const sw=document.getElementById('swDSTAR');chk.checked=wasOn;sw.classList.add('busy');try{await fetch(wasOn?'?action=dstar-stop':'?action=dstar-start');let ok=false;for(let i=0;i<15;i++){await new Promise(r=>setTimeout(r,1000));const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';const isOn=(gw||mmd)&&!d.stopped;if(wasOn&&!isOn){ok=true;setDot('dot-dstargw','off');setDot('dot-dstarmmd','off');dstarRunning=false;setDSTARToggle(false);stopDStarLogs();stopDStarTransmissionPoll();showDStarIdle();clearLog('logDstarGw');clearLog('logDstarMmd');break;}if(!wasOn&&isOn){ok=true;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=true;setDSTARToggle(true);startDStarLogs();startDStarTransmissionPoll();break;}}if(!ok){const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';dstarRunning=(gw||mmd)&&!d.stopped;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');setDSTARToggle(dstarRunning);}}catch(e){console.warn('toggleDStar error:',e);}finally{sw.classList.remove('busy');}}
+async function fetchDStarLogs(){try{const r=await fetch('?action=dstar-logs&lines=15');const d=await r.json();['logDstarGw:gateway','logDstarMmd:mmdvm'].forEach(pair=>{const[id,key]=pair.split(':');const el=document.getElementById(id);const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d[key]);if(atBot)el.scrollTop=el.scrollHeight;});}catch(e){}}
 function startDStarLogs(){fetchDStarLogs();dstarTimer=setInterval(fetchDStarLogs,5000);}
 function stopDStarLogs(){clearInterval(dstarTimer);dstarTimer=null;}
 
@@ -1116,19 +791,7 @@ document.addEventListener('click',()=>document.getElementById('dropActualizacion
 function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
 const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
 const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
-async function runUpdate(type){
-    document.getElementById('dropActualizaciones').classList.remove('open');
-    document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];
-    const con=document.getElementById('updateConsole');
-    con.textContent='⏳ Ejecutando, espera…';
-    document.getElementById('updateCloseBtn').disabled=true;
-    document.getElementById('updateModal').classList.add('open');
-    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;
-        if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);
-    }
-    catch(e){con.textContent='✖ Error de red: '+e.message;}
-    finally{document.getElementById('updateCloseBtn').disabled=false;}
-}
+async function runUpdate(type){document.getElementById('dropActualizaciones').classList.remove('open');document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];const con=document.getElementById('updateConsole');con.textContent='⏳ Ejecutando, espera…';document.getElementById('updateCloseBtn').disabled=true;document.getElementById('updateModal').classList.add('open');try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);}catch(e){con.textContent='✖ Error de red: '+e.message;}finally{document.getElementById('updateCloseBtn').disabled=false;}}
 async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
 function closeInstalar(){document.getElementById('installModal').classList.remove('open');}
 async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
@@ -1148,9 +811,43 @@ function stopYSFLogs(){clearInterval(ysfTimer);ysfTimer=null;}
 function startMMDVMYSFLogs(){fetchMMDVMYSFLogs();mmdvmYsfTimer=setInterval(fetchMMDVMYSFLogs,4000);}
 function stopMMDVMYSFLogs(){clearInterval(mmdvmYsfTimer);mmdvmYsfTimer=null;}
 function startYSFTransmissionPoll(){fetchYSFTransmission();ysfTxTimer=setInterval(fetchYSFTransmission,4000);}
-
 async function fetchSysInfo(){try{const r=await fetch('?action=sysinfo');const d=await r.json();const cpuEl=document.getElementById('siCpu');cpuEl.textContent=d.cpu+' %';cpuEl.style.color=d.cpu>80?'var(--red)':d.cpu>50?'var(--amber)':'var(--green)';const tempEl=document.getElementById('siTemp');tempEl.textContent=d.temp||'—';const t=parseFloat(d.temp);tempEl.style.color=t>75?'var(--red)':t>60?'var(--amber)':'var(--green)';document.getElementById('siRam').textContent=d.ramUsed+' GB / '+d.ramTotal+' GB';document.getElementById('siRamFree').textContent=d.ramFree+' GB';document.getElementById('siDisk').textContent=d.diskUsed+' GB / '+d.diskTotal+' GB';document.getElementById('siDiskFree').textContent=d.diskFree+' GB';}catch(e){}}
 fetchSysInfo();setInterval(fetchSysInfo,8000);
+
+/* ── Terminal ── */
+(function(){
+var xtHist=[],xtHidx=-1,xtCwd='/home/pi';
+function xtPr(){return 'pi@pi:'+xtCwd.replace('/home/pi','~')+'$';}
+function xtApp(html){var o=document.getElementById('xtOut');o.innerHTML+=html+'\n';o.scrollTop=o.scrollHeight;}
+function xtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+window.xtOpen=function(){document.getElementById('xtModal').classList.add('open');setTimeout(function(){document.getElementById('xtInp').focus();},80);};
+window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');};
+document.getElementById('xtInp').addEventListener('keydown',async function(e){
+    if(e.key==='Escape'){xtClose();return;}
+    if(e.key==='ArrowUp'){e.preventDefault();if(xtHidx<xtHist.length-1)this.value=xtHist[++xtHidx]||'';return;}
+    if(e.key==='ArrowDown'){e.preventDefault();xtHidx>0?this.value=xtHist[--xtHidx]:(xtHidx=-1,this.value='');return;}
+    if(e.key!=='Enter')return;
+    var cmd=this.value.trim();if(!cmd)return;
+    xtHist.unshift(cmd);xtHidx=-1;this.value='';
+    xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
+    if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
+    if(/^\s*(sudo\s+su|su\s*$|top|htop|nano|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado en terminal web. Ya ejecutas como usuario pi.</span>');return;}
+    if(/^\s*cd(\s|$)/.test(cmd)){
+        var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
+        if(t==='~'||t==='')xtCwd='/home/pi';
+        else if(t.startsWith('/'))xtCwd=t;
+        else if(t==='..'){var parts=xtCwd.split('/').filter(Boolean);parts.pop();xtCwd='/'+parts.join('/')||'/';}
+        else xtCwd=xtCwd.replace(/\/$/,'')+'/'+t;
+        document.getElementById('xtPr').textContent=xtPr();
+        return;
+    }
+    try{
+        var resp=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent('cd '+xtCwd+' && '+cmd)});
+        var dat=await resp.json();
+        if(dat.output)xtApp('<span class="xt-out">'+dat.output+'</span>');
+    }catch(err){xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');}
+});
+})();
 
 (async()=>{
     await fetchStationInfo();
