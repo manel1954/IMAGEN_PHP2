@@ -677,7 +677,6 @@ button.btn-header { font-family: var(--font-mono); }
         <div class="station-meta-item"><span class="station-meta-label">💿 Disco usado</span><span class="station-meta-value" id="siDisk" style="color:var(--amber);">—</span></div>
         <div class="station-meta-item"><span class="station-meta-label">💿 Disco libre</span><span class="station-meta-value" id="siDiskFree" style="color:var(--green);">—</span></div>
     </div>
-    <div class="ini-source-badge">desde <span>MMDVMHost.ini</span></div>
 </div>
 
 <div class="status-bar">
