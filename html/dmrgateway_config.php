@@ -6,6 +6,23 @@ $INI_PATH = '/home/pi/DMRGateway/DMRGateway.ini';
 
 // ── Campos editables por sección ─────────────────────────────────────────────
 $SECTIONS = [
+    'General' => [
+        ['key' => 'Callsign',    'label' => 'Indicativo',           'type' => 'str'],
+        ['key' => 'Id',          'label' => 'DMR ID',               'type' => 'int'],
+        ['key' => 'Timeout',     'label' => 'Timeout (s)',          'type' => 'int'],
+        ['key' => 'Daemon',      'label' => 'Daemon (0/1)',         'type' => 'int'],
+    ],
+    'Info' => [
+        ['key' => 'RXFrequency', 'label' => 'Frecuencia RX (Hz)',  'type' => 'int'],
+        ['key' => 'TXFrequency', 'label' => 'Frecuencia TX (Hz)',  'type' => 'int'],
+        ['key' => 'Power',       'label' => 'Potencia (W)',         'type' => 'int'],
+        ['key' => 'Latitude',    'label' => 'Latitud',              'type' => 'str'],
+        ['key' => 'Longitude',   'label' => 'Longitud',             'type' => 'str'],
+        ['key' => 'Height',      'label' => 'Altura (m)',           'type' => 'int'],
+        ['key' => 'Location',    'label' => 'Localización',         'type' => 'str'],
+        ['key' => 'Description', 'label' => 'Descripción',          'type' => 'str'],
+        ['key' => 'URL',         'label' => 'URL',                  'type' => 'str'],
+    ],
     'XLX Network' => [
         ['key' => 'Enabled',    'label' => 'Habilitado (0/1)',      'type' => 'int'],
         ['key' => 'File',       'label' => 'Fichero hosts',         'type' => 'str'],
@@ -70,6 +87,8 @@ $SECTIONS = [
 
 // ── Colores para cada sección ─────────────────────────────────────────────────
 $SEC_COLORS = [
+    'General'       => '#a8b9cc',
+    'Info'          => '#b57aff',
     'XLX Network'   => '#00d4ff',
     'DMR Network 1' => '#ffb300',
     'DMR Network 2' => '#00ff9f',
@@ -229,7 +248,6 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
   }
   * { box-sizing: border-box; }
   body { background: var(--bg); color: var(--text); font-family: var(--font-ui); margin: 0; min-height: 100vh; }
-
   .ctrl-header {
     background: var(--surface); border-bottom: 1px solid var(--border);
     padding: 1rem 2rem; display: flex; align-items: center; gap: 1rem;
@@ -239,24 +257,19 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
     font-family: var(--font-ui); font-weight: 700; font-size: 1.4rem;
     letter-spacing: .08em; color: #e2eaf5; margin: 0; text-transform: uppercase;
   }
-
   .page-body { padding: 2rem; max-width: 900px; margin: 0 auto; }
-
   .ini-path {
     font-family: var(--font-mono); font-size: .75rem; color: var(--text-dim);
     background: #0d1e2a; border: 1px solid var(--border); border-radius: 4px;
     padding: .4rem .8rem; margin-bottom: 1.5rem;
   }
   .ini-path span { color: var(--cyan); }
-
   .alert-custom {
     border-radius: 6px; padding: .8rem 1.2rem; margin-bottom: 1.5rem;
     font-family: var(--font-mono); font-size: .85rem; border: 1px solid;
   }
   .alert-success { background: rgba(0,255,159,.08); border-color: var(--green); color: var(--green); }
   .alert-error   { background: rgba(255,69,96,.08);  border-color: var(--red);   color: var(--red); }
-
-  /* Tabs */
   .tabs { display: flex; gap: .3rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
   .tab-btn {
     font-family: var(--font-mono); font-size: .75rem; letter-spacing: .08em;
@@ -269,14 +282,10 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
   .tab-btn.active { background: #0d1e2a; color: var(--text); border-bottom: 2px solid; }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
-
-  /* Card */
   .sec-card {
     background: #0d1e2a; border: 1px solid var(--border);
     border-radius: 0 6px 6px 6px; padding: 1.5rem; margin-bottom: 1rem;
   }
-
-  /* Fields */
   .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   @media (max-width: 600px) { .field-grid { grid-template-columns: 1fr; } }
   .field-wrap { margin-bottom: .2rem; }
@@ -288,8 +297,6 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
   }
   input[type=text]:focus, input[type=number]:focus { border-color: var(--green); }
   .field-hint { font-family: var(--font-mono); font-size: .65rem; color: var(--text-dim); margin-top: .2rem; }
-
-  /* Enabled select */
   .enabled-row { margin-bottom: 1.2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
   .enabled-select {
     background: var(--surface); border: 1px solid var(--border);
@@ -297,8 +304,6 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
     font-size: .9rem; padding: .5rem .8rem; border-radius: 4px;
     outline: none; width: 140px;
   }
-
-  /* Custom dropdown */
   .custom-select-wrap { position: relative; width: 100%; }
   .custom-select-btn {
     width: 100%; background: var(--surface); border: 1px solid var(--border);
@@ -321,13 +326,10 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
   .custom-select-list.open { display: block; }
   .custom-select-option {
     font-family: var(--font-mono); font-size: .82rem; color: var(--text);
-    padding: .45rem .8rem; cursor: pointer; transition: background .15s;
-    white-space: nowrap;
+    padding: .45rem .8rem; cursor: pointer; transition: background .15s; white-space: nowrap;
   }
   .custom-select-option:hover { background: rgba(0,255,159,.1); color: var(--green); }
   .custom-select-option.selected { background: rgba(0,255,159,.08); color: var(--green); font-weight: bold; }
-
-  /* Buttons */
   .btn-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 1.5rem; }
   .btn-save {
     background: #28a745; color: #fff; border: none; border-radius: 6px;
@@ -494,7 +496,6 @@ function postKey($sec, $key) { return str_replace(' ', '_', $sec) . '_' . $key; 
 </div>
 
 <script>
-// ── Tabs ──────────────────────────────────────────────────────────────────────
 function switchTab(btn, tabId, color) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.remove('active');
@@ -508,17 +509,14 @@ function switchTab(btn, tabId, color) {
   document.getElementById(tabId).classList.add('active');
 }
 
-// ── Custom dropdown ───────────────────────────────────────────────────────────
 function toggleDropdown(btn) {
   const list   = btn.nextElementSibling;
   const isOpen = list.classList.contains('open');
-  // Cerrar todos
   document.querySelectorAll('.custom-select-list').forEach(l => l.classList.remove('open'));
   document.querySelectorAll('.custom-select-btn').forEach(b => b.classList.remove('open'));
   if (!isOpen) {
     list.classList.add('open');
     btn.classList.add('open');
-    // Scroll a la opción seleccionada
     const sel = list.querySelector('.selected');
     if (sel) setTimeout(() => sel.scrollIntoView({ block: 'center' }), 10);
   }
@@ -536,7 +534,6 @@ function selectOption(opt) {
   btn.classList.remove('open');
 }
 
-// Cerrar al hacer click fuera
 document.addEventListener('click', e => {
   if (!e.target.closest('.custom-select-wrap')) {
     document.querySelectorAll('.custom-select-list').forEach(l => l.classList.remove('open'));
