@@ -923,7 +923,7 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 
 <!-- Modal Instalar Display Driver -->
-<div id="installModal" class="install-modal">
+<!-- <div id="installModal" class="install-modal">
 <div class="install-box">
 <div class="install-title">⚙ Instalar Display Driver</div>
 <div id="installOutput" class="install-output"></div>
@@ -933,7 +933,7 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 <div id="installMsg" class="restore-msg"></div>
 </div>
-</div>
+</div> -->
 
 <script>
 let refreshTimer=null,txTimer=null,vuTimer=null,ysfTimer=null,mmdvmYsfTimer=null,ysfTxTimer=null,ysfVuTimer=null,dstarTimer=null;
