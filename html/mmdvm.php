@@ -178,6 +178,26 @@ if ($action === 'stop') {
     exit;
 }
 
+// ── Actualizaciones ──────────────────────────────────────────────────
+if ($action === 'update-imagen') {
+    $output = shell_exec('sudo sh /home/pi/A108/Actualiza_imagen.sh 2>&1');
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
+    exit;
+}
+if ($action === 'update-ids') {
+    $output = shell_exec('sudo sh /home/pi/A108/actualizar_ids.sh 2>&1');
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
+    exit;
+}
+if ($action === 'update-ysf') {
+    $output = shell_exec('sudo sh /home/pi/A108/actualizar_reflectores_ysf.sh 2>&1');
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
+    exit;
+}
+
 // ── YSF status ───────────────────────────────────────────────────────
 if ($action === 'ysf-status') {
     $st = trim(shell_exec('sudo /usr/local/bin/ysf_status.sh 2>/dev/null'));
@@ -651,6 +671,25 @@ button.btn-header { font-family: var(--font-mono); }
 .restore-msg.loading { color: var(--amber); border-color: var(--amber); background: rgba(255,179,0,.06); }
 .install-output { font-family: var(--font-mono); font-size: .72rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; display: none; }
 .install-output.visible { display: block; }
+
+/* ── Dropdown actualizaciones ─────────────────────────────────── */
+.dropdown-wrap { position: relative; display: inline-block; }
+.dropdown-menu-custom { display: none; position: absolute; top: calc(100% + .4rem); left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 220px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; }
+.dropdown-wrap:hover .dropdown-menu-custom,
+.dropdown-wrap.open .dropdown-menu-custom { display: block; }
+.dropdown-item-custom { display: block; width: 100%; padding: .55rem 1rem; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: none; border: none; cursor: pointer; text-align: left; transition: background .15s, color .15s; border-bottom: 1px solid var(--border); }
+.dropdown-item-custom:last-child { border-bottom: none; }
+.dropdown-item-custom:hover { background: rgba(0,212,255,.08); color: var(--cyan); }
+
+/* ── Modal consola actualización ─────────────────────────────── */
+.update-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9500; align-items: center; justify-content: center; }
+.update-modal.open { display: flex; }
+.update-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; width: 680px; max-width: 95vw; }
+.update-title { font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1rem; }
+.update-console { font-family: var(--font-mono); font-size: .75rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; }
+.update-console .ok  { color: var(--green); }
+.update-console .err { color: var(--red); }
+.update-console .inf { color: #7a9ab5; }
 </style>
 </head>
 <body>
@@ -660,6 +699,14 @@ button.btn-header { font-family: var(--font-mono); }
 <a href="edit_ini.php?file=displaydriver" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
 <a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
 <button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
+<div class="dropdown-wrap" id="dropActualizaciones">
+  <button class="btn-header cyan" onclick="toggleDropdown(event)">⬇ Actualizaciones ▾</button>
+  <div class="dropdown-menu-custom">
+    <button class="dropdown-item-custom" onclick="runUpdate('imagen')">🖼 Actualizar Imagen</button>
+    <button class="dropdown-item-custom" onclick="runUpdate('ids')">📋 Actualizar IDs</button>
+    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
+  </div>
+</div>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 </header>
 <main class="ctrl-body">
@@ -840,6 +887,17 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 
 </main>
+
+<!-- Modal Actualización -->
+<div id="updateModal" class="update-modal">
+<div class="update-box">
+<div class="update-title" id="updateTitle">⬇ Actualizando…</div>
+<div class="update-console" id="updateConsole">Iniciando…</div>
+<div class="restore-btns">
+<button class="restore-btn-cancel" id="updateCloseBtn" onclick="closeUpdate()">✖ Cerrar</button>
+</div>
+</div>
+</div>
 
 <!-- Modal Restore -->
 <div id="restoreModal" class="restore-modal">
@@ -1044,6 +1102,22 @@ function stopDStarLogs(){clearInterval(dstarTimer);dstarTimer=null;}
 async function toggleServices(chk){const wasOn=!chk.checked;const sw=document.getElementById('swDMR');chk.checked=wasOn;sw.classList.add('busy');try{await fetch(wasOn?'?action=stop':'?action=start');await new Promise(r=>setTimeout(r,2200));const r=await fetch('?action=status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';running=gw||mmd;setDot('dot-gateway',gw?'active':'off');setDot('dot-mmdvm',mmd?'active':'off');setDot('dot-mosquitto',gw?'active':'off');setDMRToggle(running);if(wasOn){stopRefresh();clearLog('logGw');clearLog('logMmd');showIdle();document.getElementById('lhBody').innerHTML='<div class="lh-empty">Sin actividad reciente</div>';}else startRefresh();}finally{sw.classList.remove('busy');}}
 async function toggleYSF(chk){const wasOn=!chk.checked;const sw=document.getElementById('swYSF');chk.checked=wasOn;sw.classList.add('busy');try{if(wasOn){await fetch('?action=ysf-stop');await new Promise(r=>setTimeout(r,1000));await fetch('?action=mmdvmysf-stop');await new Promise(r=>setTimeout(r,2000));clearLog('logYsf');clearLog('logMmdvmYsf');stopYSFLogs();stopMMDVMYSFLogs();showYSFIdle();document.getElementById('ysfLhBody').innerHTML='<div class="lh-empty">Sin actividad C4FM</div>';}else{await fetch('?action=mmdvmysf-start');await new Promise(r=>setTimeout(r,2000));await fetch('?action=ysf-start');await new Promise(r=>setTimeout(r,1500));startYSFLogs();startMMDVMYSFLogs();}await checkYSFStatus();await checkMMDVMYSFStatus();}finally{sw.classList.remove('busy');}}
 
+function toggleDropdown(e){e.stopPropagation();document.getElementById('dropActualizaciones').classList.toggle('open');}
+document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
+function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
+const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
+const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
+async function runUpdate(type){
+    document.getElementById('dropActualizaciones').classList.remove('open');
+    document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];
+    const con=document.getElementById('updateConsole');
+    con.textContent='⏳ Ejecutando, espera…';
+    document.getElementById('updateCloseBtn').disabled=true;
+    document.getElementById('updateModal').classList.add('open');
+    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;}
+    catch(e){con.textContent='✖ Error de red: '+e.message;}
+    finally{document.getElementById('updateCloseBtn').disabled=false;}
+}
 async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
 function closeInstalar(){document.getElementById('installModal').classList.remove('open');}
 async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
