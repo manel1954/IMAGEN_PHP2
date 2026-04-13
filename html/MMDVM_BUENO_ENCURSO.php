@@ -526,11 +526,12 @@ button.btn-header { font-family: var(--font-mono); }
   <div class="dropdown-menu-custom">
     <button class="dropdown-item-custom" onclick="runUpdate('imagen')">🖼 Actualizar Imagen</button>
     <button class="dropdown-item-custom" onclick="runUpdate('ids')">📋 Actualizar IDs</button>
-    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
+    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores</button>
   </div>
 </div>
-<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 <button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
+<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+
 </div>
 </header>
 <main class="ctrl-body">
@@ -699,10 +700,10 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
   <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
-  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
+  <div class="xterm-out" id="xtOut">pi@raspberry:~ $ Terminal lista
 </div>
   <div class="xterm-row">
-    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
+    <span class="xterm-pr" id="xtPr">pi@raspberry:~ $</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
   </div>
   <div class="restore-btns">
@@ -811,7 +812,7 @@ async function toggleYSF(chk){const wasOn=!chk.checked;const sw=document.getElem
 function toggleDropdown(e){e.stopPropagation();document.getElementById('dropActualizaciones').classList.toggle('open');}
 document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
 function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
-const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
+const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores'};
 const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
 async function runUpdate(type){document.getElementById('dropActualizaciones').classList.remove('open');document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];const con=document.getElementById('updateConsole');con.textContent='⏳ Ejecutando, espera…';document.getElementById('updateCloseBtn').disabled=true;document.getElementById('updateModal').classList.add('open');try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);}catch(e){con.textContent='✖ Error de red: '+e.message;}finally{document.getElementById('updateCloseBtn').disabled=false;}}
 async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
