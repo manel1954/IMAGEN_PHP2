@@ -55,6 +55,25 @@ function formatFreq($hz) {
     return number_format($mhz, 3, '.', '') . ' MHz';
 }
 
+// ── Redirección a terminal web (ttyd) ────────────────────────────────
+if ($action === 'terminal') {
+    // Verificación: solo permitir desde localhost o red local
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isLocal = in_array($ip, ['127.0.0.1', '::1', 'localhost']) || 
+               strpos($ip, '192.168.') === 0 || 
+               strpos($ip, '10.') === 0 ||
+               strpos($ip, '172.16.') === 0;
+    
+    if (!$isLocal) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Acceso a terminal restringido a red local']);
+        exit;
+    }
+    // Redirigir a ttyd en localhost:7681
+    header('Location: http://127.0.0.1:7681');
+    exit;
+}
+
 // ── Datos desde MMDVMHost.ini ────────────────────────────────────────
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
@@ -704,6 +723,8 @@ button.btn-header { font-family: var(--font-mono); }
 <a href="edit_ini.php?file=displaydriver" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
 <a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
 <button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
+<!-- 👇 NUEVO BOTÓN TERMINAL 👇 -->
+<a href="?action=terminal" target="_blank" class="btn-header cyan" title="Abrir terminal web (ttyd)"> 💻 Terminal </a>
 <div class="dropdown-wrap" id="dropActualizaciones">
   <button class="btn-header cyan">⬇ Actualizaciones ▾</button>
   <div class="dropdown-menu-custom">
