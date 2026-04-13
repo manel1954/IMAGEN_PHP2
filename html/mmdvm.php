@@ -90,37 +90,37 @@ function formatFreq($hz) {
 //     $ip = $iniIp ?: '—';
 
     // ── Datos desde MMDVMYSF.ini ─────────────────────────────────
-    $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
-    $ysfIni = parseMMDVMIni($ysfIniPath);
+//     $ysfIniPath = '/home/pi/MMDVMHost/MMDVMYSF.ini';
+//     $ysfIni = parseMMDVMIni($ysfIniPath);
 
-    $ysfPort   = $ysfIni['Modem']['UARTPort']      ?? ($ysfIni['modem']['UARTPort'] ?? '—');
-    $ysfRxHz   = $ysfIni['Info']['RXFrequency']    ?? '0';
-    $ysfTxHz   = $ysfIni['Info']['TXFrequency']    ?? '0';
-    $ysfFreqRX = formatFreq($ysfRxHz);
-    $ysfFreqTX = formatFreq($ysfTxHz);
-    $ysfIpRaw  = trim($ysfIni['General']['Address'] ?? '');
-    $ysfIp     = ($ysfIpRaw !== '' && $ysfIpRaw !== '0.0.0.0') ? $ysfIpRaw : $ip;
+//     $ysfPort   = $ysfIni['Modem']['UARTPort']      ?? ($ysfIni['modem']['UARTPort'] ?? '—');
+//     $ysfRxHz   = $ysfIni['Info']['RXFrequency']    ?? '0';
+//     $ysfTxHz   = $ysfIni['Info']['TXFrequency']    ?? '0';
+//     $ysfFreqRX = formatFreq($ysfRxHz);
+//     $ysfFreqTX = formatFreq($ysfTxHz);
+//     $ysfIpRaw  = trim($ysfIni['General']['Address'] ?? '');
+//     $ysfIp     = ($ysfIpRaw !== '' && $ysfIpRaw !== '0.0.0.0') ? $ysfIpRaw : $ip;
 
-    header('Content-Type: application/json');
-    echo json_encode([
-        'callsign'  => strtoupper(trim($callsign)),
-        'dmrid'     => trim($dmrid),
-        'freq'      => $freq,
-        'freqRX'    => $freqRX,
-        'port'      => $port ?: '—',
-        'ip'        => $ip,
-        'locator'   => $locator,
-        'location'  => trim($location),
-        'desc'      => trim($desc),
-        'lat'       => $lat,
-        'lon'       => $lon,
-        'ysfPort'   => $ysfPort ?: '—',
-        'ysfFreqRX' => $ysfFreqRX,
-        'ysfFreqTX' => $ysfFreqTX,
-        'ysfIp'     => $ysfIp ?: '—',
-    ]);
-    exit;
-}
+//     header('Content-Type: application/json');
+//     echo json_encode([
+//         'callsign'  => strtoupper(trim($callsign)),
+//         'dmrid'     => trim($dmrid),
+//         'freq'      => $freq,
+//         'freqRX'    => $freqRX,
+//         'port'      => $port ?: '—',
+//         'ip'        => $ip,
+//         'locator'   => $locator,
+//         'location'  => trim($location),
+//         'desc'      => trim($desc),
+//         'lat'       => $lat,
+//         'lon'       => $lon,
+//         'ysfPort'   => $ysfPort ?: '—',
+//         'ysfFreqRX' => $ysfFreqRX,
+//         'ysfFreqTX' => $ysfFreqTX,
+//         'ysfIp'     => $ysfIp ?: '—',
+//     ]);
+//     exit;
+// }
 
 // ── System Info ──────────────────────────────────────────────────────
 if ($action === 'sysinfo') {
