@@ -180,7 +180,7 @@ if ($action === 'stop') {
 
 // ── Actualizaciones ──────────────────────────────────────────────────
 if ($action === 'update-imagen') {
-    $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1');
+    $output = shell_exec('sudo sh /home/pi/A108/Actualiza_imagen.sh 2>&1');
     header('Content-Type: application/json');
     echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
     exit;
@@ -675,8 +675,7 @@ button.btn-header { font-family: var(--font-mono); }
 /* ── Dropdown actualizaciones ─────────────────────────────────── */
 .dropdown-wrap { position: relative; display: inline-block; }
 .dropdown-menu-custom { display: none; position: absolute; top: calc(100% + .4rem); left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 220px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; }
-.dropdown-wrap:hover .dropdown-menu-custom,
-.dropdown-wrap.open .dropdown-menu-custom { display: block; }
+.dropdown-wrap:hover .dropdown-menu-custom { display: block; }
 .dropdown-item-custom { display: block; width: 100%; padding: .55rem 1rem; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: none; border: none; cursor: pointer; text-align: left; transition: background .15s, color .15s; border-bottom: 1px solid var(--border); }
 .dropdown-item-custom:last-child { border-bottom: none; }
 .dropdown-item-custom:hover { background: rgba(0,212,255,.08); color: var(--cyan); }
@@ -700,7 +699,7 @@ button.btn-header { font-family: var(--font-mono); }
 <a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
 <button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
 <div class="dropdown-wrap" id="dropActualizaciones">
-  <button class="btn-header cyan" onclick="toggleDropdown(event)">⬇ Actualizaciones ▾</button>
+  <button class="btn-header cyan">⬇ Actualizaciones ▾</button>
   <div class="dropdown-menu-custom">
     <button class="dropdown-item-custom" onclick="runUpdate('imagen')">🖼 Actualizar Imagen</button>
     <button class="dropdown-item-custom" onclick="runUpdate('ids')">📋 Actualizar IDs</button>
