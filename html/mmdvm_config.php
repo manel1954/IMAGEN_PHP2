@@ -27,10 +27,13 @@ $SECTIONS = [
     'Modem' => [
         ['key' => 'Protocol',   'label' => 'Protocolo',            'type' => 'str'],
         ['key' => 'UARTPort',   'label' => 'Puerto UART',          'type' => 'select', 'options' => [
-            ['label' => '/dev/ttyACM0', 'value' => '/dev/ttyACM0'],
-            ['label' => '/dev/ttyAMA0', 'value' => '/dev/ttyAMA0'],
-            ['label' => '/dev/ttyACM1', 'value' => '/dev/ttyACM1'],
-            ['label' => '/dev/ttyAMA1', 'value' => '/dev/ttyAMA1'],
+            ['label' => '/dev/ttyAMA0',  'value' => '/dev/ttyAMA0'],
+            ['label' => '/dev/ttyACM0',  'value' => '/dev/ttyACM0'],
+            ['label' => '/dev/ttyACM1',  'value' => '/dev/ttyACM1'],
+            ['label' => '/dev/ttyACM2',  'value' => '/dev/ttyACM2'],
+            ['label' => '/dev/ttyUSB0',  'value' => '/dev/ttyUSB0'],
+            ['label' => '/dev/ttyUSB1',  'value' => '/dev/ttyUSB1'],
+            ['label' => '/dev/ttyUSB2',  'value' => '/dev/ttyUSB2'],
         ]],
         ['key' => 'UARTSpeed',  'label' => 'Velocidad UART',       'type' => 'select', 'options' => [
             ['label' => '115200', 'value' => '115200'],
