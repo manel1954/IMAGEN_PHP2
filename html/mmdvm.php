@@ -180,7 +180,7 @@ if ($action === 'stop') {
 
 // ── Actualizaciones ──────────────────────────────────────────────────
 if ($action === 'update-imagen') {
-    $output = shell_exec('sudo sh /home/pi/A108/Actualiza_imagen.sh 2>&1');
+    $output = shell_exec('sudo sh /home/pi/A108/actualiza_imagen.sh 2>&1');
     header('Content-Type: application/json');
     echo json_encode(['ok' => true, 'output' => htmlspecialchars($output ?? '(sin salida)')]);
     exit;
@@ -1115,7 +1115,7 @@ async function runUpdate(type){
     document.getElementById('updateCloseBtn').disabled=true;
     document.getElementById('updateModal').classList.add('open');
     try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;
-        if(type==='imagen')setTimeout(closeUpdate,2000);
+        if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);
     }
     catch(e){con.textContent='✖ Error de red: '+e.message;}
     finally{document.getElementById('updateCloseBtn').disabled=false;}
