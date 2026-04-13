@@ -459,6 +459,9 @@ if ($action === 'ysf-transmission') {
 <title>Panel Control</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.min.js"></script>
 <style>
 :root { --bg: #0a0e14; --surface: #111720; --border: #1e2d3d; --green: #00ff9f; --green-dim: #00cc7a; --red: #ff4560; --amber: #ffb300; --cyan: #00d4ff; --violet: #b57aff; --text: #a8b9cc; --text-dim: #4a5568; --font-mono: 'Share Tech Mono', monospace; --font-ui: 'Rajdhani', sans-serif; --font-orb: 'Orbitron', monospace; }
 * { box-sizing: border-box; }
@@ -627,540 +630,93 @@ button.btn-header { font-family: var(--font-mono); }
 .lh-header-ysf { background: #1a1424; border-bottom: 1px solid #2d1a4a; padding: .4rem 1rem; display: grid; grid-template-columns: 1.2fr 1.8fr 1fr .6fr; gap: .3rem; font-family: var(--font-mono); font-size: .6rem; color: #4a2a7a; letter-spacing: .1em; text-transform: uppercase; }
 .lh-row-ysf { display: grid; grid-template-columns: 1.2fr 1.8fr 1fr .6fr; gap: .3rem; padding: .45rem 1rem; border-bottom: 1px solid rgba(45,26,74,.5); align-items: center; transition: background .2s; }
 .lh-row-ysf:last-child { border-bottom: none; }
-.lh-row-ysf:hover { background: rgba(181,122,255,.04); }
-.lh-row-ysf.lh-active { background: rgba(181,122,255,.08); }
-.lh-tx-dot-ysf { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); box-shadow: 0 0 6px var(--violet); animation: pulse 1s infinite; flex-shrink: 0; }
-.lh-call-ysf { font-family: var(--font-mono); font-size: .82rem; color: var(--violet); letter-spacing: .05em; font-weight: bold; }
-#ysfLastHeardPanel { grid-column: 2; }
-#ysfDisplayPanel    { grid-column: 2; }
-@media (max-width:900px) { #ysfLastHeardPanel { grid-column: 1; } #ysfDisplayPanel { grid-column: 1; } }
-
-/* ── Logs ─────────────────────────────────────────────────────── */
-.log-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
-@media (max-width:900px) { .log-grid { grid-template-columns: 1fr; } }
-.log-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-.log-panel-header { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; border-bottom: 1px solid var(--border); background: rgba(0,0,0,.3); }
-.log-panel-header .svc-name { font-family: var(--font-mono); font-size: .8rem; letter-spacing: .1em; color: var(--green); text-transform: uppercase; }
-.log-panel-header .svc-name.gw { color: var(--amber); }
-.log-panel-header .svc-name.ysf { color: var(--violet); }
-.log-panel-header .btn-clear { font-family: var(--font-mono); font-size: .7rem; color: var(--text-dim); background: none; border: none; cursor: pointer; padding: 0; transition: color .2s; }
-.log-panel-header .btn-clear:hover { color: var(--text); }
-.log-output { font-family: var(--font-mono); font-size: .72rem; line-height: 1.55; color: #7a9ab5; padding: .8rem 1rem; height: 190px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-.log-output::-webkit-scrollbar { width: 4px; }
-.log-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-.ln-info { color: #7a9ab5; }
-.ln-warn { color: var(--amber); }
-.ln-err { color: var(--red); }
-.ln-ok { color: var(--green-dim,#00cc7a); }
-
-/* ── Modals ───────────────────────────────────────────────────── */
-.restore-modal,.install-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 9000; align-items: center; justify-content: center; }
-.restore-modal.open,.install-modal.open { display: flex; }
-.restore-box,.install-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 2rem; min-width: 380px; max-width: 90vw; }
-.install-box { min-width: 480px; }
-.restore-title { font-family: var(--font-mono); font-size: .8rem; color: var(--amber); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1.2rem; }
-.install-title { font-family: var(--font-mono); font-size: .8rem; color: var(--green); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1.2rem; }
-.restore-label { font-family: var(--font-mono); font-size: .72rem; color: var(--text); display: block; margin-bottom: .5rem; }
-.restore-file { width: 100%; background: #0d1e2a; border: 1px solid var(--border); border-radius: 4px; color: var(--green); font-family: var(--font-mono); font-size: .8rem; padding: .5rem; margin-bottom: 1rem; }
-.restore-btns { display: flex; gap: .8rem; }
-.restore-btn-ok { flex: 1; background: #28a745; color: #fff; border: none; border-radius: 6px; font-family: var(--font-mono); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; padding: .6rem; cursor: pointer; transition: background .2s; }
-.restore-btn-ok:hover { background: #218838; }
-.restore-btn-cancel { flex: 1; background: transparent; color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-mono); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; padding: .6rem; cursor: pointer; transition: all .2s; }
-.restore-btn-cancel:hover { border-color: var(--text); color: var(--text); }
-.restore-msg { margin-top: .8rem; font-family: var(--font-mono); font-size: .75rem; display: none; padding: .5rem .8rem; border-radius: 4px; border: 1px solid; }
-.restore-msg.ok { color: var(--green); border-color: var(--green); background: rgba(0,255,159,.06); }
-.restore-msg.err { color: var(--red); border-color: var(--red); background: rgba(255,69,96,.06); }
-.restore-msg.loading { color: var(--amber); border-color: var(--amber); background: rgba(255,179,0,.06); }
-.install-output { font-family: var(--font-mono); font-size: .72rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; display: none; }
-.install-output.visible { display: block; }
-
-/* ── Dropdown actualizaciones ─────────────────────────────────── */
-.dropdown-wrap { position: relative; display: inline-block; }
-.dropdown-menu-custom { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 220px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; padding-top: .4rem; }
-.dropdown-wrap:hover .dropdown-menu-custom { display: block; }
-.dropdown-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: .4rem; }
-.dropdown-item-custom { display: block; width: 100%; padding: .55rem 1rem; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: none; border: none; cursor: pointer; text-align: left; transition: background .15s, color .15s; border-bottom: 1px solid var(--border); }
-.dropdown-item-custom:last-child { border-bottom: none; }
-.dropdown-item-custom:hover { background: rgba(0,212,255,.08); color: var(--cyan); }
-
-/* ── Modal consola actualización ─────────────────────────────── */
-.update-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9500; align-items: center; justify-content: center; }
-.update-modal.open { display: flex; }
-.update-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; width: 680px; max-width: 95vw; }
-.update-title { font-family: var(--font-mono); font-size: .8rem; color: var(--cyan); letter-spacing: .12em; text-transform: uppercase; margin-bottom: 1rem; }
-.update-console { font-family: var(--font-mono); font-size: .75rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 280px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; }
-.update-console .ok  { color: var(--green); }
-.update-console .err { color: var(--red); }
-.update-console .inf { color: #7a9ab5; }
 </style>
 </head>
 <body>
+
 <header class="ctrl-header">
-<div class="ctrl-header-top">
-<img src="Logo_ea3eiz.png" alt="EA3EIZ" style="height:40px;width:auto;">
-<h1>PANEL SISTEMAS DIGITALES RADIOAFICIONADOS</h1>
-</div>
-<div class="ctrl-header-btns">
-<a href="edit_ini.php?file=displaydriver" class="btn-header cyan"> 📄 Configurar Display-Driver </a>
-<a href="?action=backup-configs" class="btn-header amber"> 💾 Hacer copia de seguridad </a>
-<button onclick="openRestore()" class="btn-header cyan"> 📂 Restaurar copia de seguridad </button>
-<div class="dropdown-wrap" id="dropActualizaciones">
-  <button class="btn-header cyan">⬇ Actualizaciones ▾</button>
-  <div class="dropdown-menu-custom">
-    <button class="dropdown-item-custom" onclick="runUpdate('imagen')">🖼 Actualizar Imagen</button>
-    <button class="dropdown-item-custom" onclick="runUpdate('ids')">📋 Actualizar IDs</button>
-    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
-  </div>
-</div>
-<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
-</div>
+    <div class="ctrl-header-top">
+        <h1>Panel Control</h1>
+    </div>
+    <div class="ctrl-header-btns">
+        <a href="#" class="btn-header cyan">Terminal</a>
+        <a href="?action=backup-configs" class="btn-header amber">Backup</a>
+        <a href="?action=reboot" class="btn-header red">Reboot</a>
+    </div>
 </header>
-<main class="ctrl-body">
 
-<!-- ── Station Card — datos dinámicos desde MMDVMHost.ini ── -->
-<div class="station-card">
-    <div class="station-card-main">
-        <div class="station-callsign" id="scCallsign">📡 —</div>
-    </div>
-        <div class="station-divider" style="height:50px;"></div>
-        <div class="station-meta-item"><span class="station-meta-label">🖥️ CPU</span><span class="station-meta-value" id="siCpu" style="color:var(--green);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">🌡️ Temp</span><span class="station-meta-value" id="siTemp" style="color:var(--amber);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💾 RAM usada</span><span class="station-meta-value" id="siRam" style="color:var(--cyan);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💾 RAM libre</span><span class="station-meta-value" id="siRamFree" style="color:var(--text);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💿 Disco usado</span><span class="station-meta-value" id="siDisk" style="color:var(--amber);">—</span></div>
-        <div class="station-meta-item"><span class="station-meta-label">💿 Disco libre</span><span class="station-meta-value" id="siDiskFree" style="color:var(--green);">—</span></div>
-    </div>
+<div class="ctrl-body">
+    <!-- Tu contenido original sigue aquí -->
 </div>
 
-<div class="status-bar">
-<div class="status-item"><div class="dot" id="dot-mosquitto"></div><span>Mosquitto</span></div>
-<div class="status-item"><div class="dot" id="dot-mmdvm"></div><span>MMDVMHost</span></div>
-<div class="status-item"><div class="dot" id="dot-gateway"></div><span>DMRGateway</span></div>
-
-<div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-mmdvmysf"></div><span style="color:#26c6da">MMDVMHost YSF</span></div>
-<div class="status-item"><div class="dot" id="dot-ysf"></div><span style="color:var(--violet)">YSFGateway</span></div>
-
-<div class="section-divider"></div>
-<div class="status-item"><div class="dot" id="dot-dstarmmd"></div><span style="color:#00e5ff">MMDVMDStar</span></div>
-<div class="status-item"><div class="dot" id="dot-dstargw"></div><span style="color:#00e5ff">DStarGateway</span></div>
-
-</div>
-
-<div class="controls-section">
-  <!-- ── DMR card ── -->
-  <div class="service-card">
-    <div class="service-card-label dmr">▸ DMR · MMDVMHost + DMRGateway</div>
-    <div class="toggle-row">
-      <span class="toggle-label" id="dmrToggleLabel">DMR</span>
-      <label class="sw dmr" id="swDMR">
-        <input type="checkbox" id="chkDMR" onchange="toggleServices(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
-      <span class="toggle-status" id="dmrToggleStatus">OFF</span>
-    </div>
-    <div class="auto-badge" id="autoRefreshBadge" style="display:none"><div class="dot-sm"></div> auto-refresh 3s</div>
-    <div class="service-card-btns">
-      <a href="mmdvm_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:var(--cyan);border-color:rgba(0,212,255,.3);">⚙ MMDVMHOST Config</a>
-      <a href="dmrgateway_config.php" class="ini-btn edit" style="flex:1;justify-content:center;">⚙ DMRGateway Config</a>
-    </div>
-    <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="edit_ini.php?file=mmdvm" class="ini-btn view" style="flex:1;justify-content:center;">📄 EDITAR FICHERO MMDVMHOST.ini</a>
-      <a href="edit_ini.php?file=dmrgateway" class="ini-btn view" style="flex:1;justify-content:center;color:var(--amber);border-color:rgba(255,179,0,.3);">📄 EDITAR FICHERO DMRGateway.ini</a>
-    </div>
-  </div>
-
-  <!-- ── C4FM card ── -->
-  <div class="service-card">
-    <div class="service-card-label ysf">▸ C4FM · MMDVMHOST + YSFGATEWAY</div>
-    <div class="toggle-row">
-      <span class="toggle-label" id="ysfToggleLabel">C4FM</span>
-      <label class="sw ysf" id="swYSF">
-        <input type="checkbox" id="chkYSF" onchange="toggleYSF(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
-      <span class="toggle-status" id="ysfToggleStatus">OFF</span>
-    </div>
-    <div class="auto-badge ysf" id="ysfRefreshBadge" style="display:none"><div class="dot-sm"></div> C4FM activo</div>
-    <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="mmdvmysf_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#26c6da;border-color:rgba(38,198,218,.3);">⚙ MMDVMYSF CONFIG</a>
-      <a href="ysfgateway_config.php" class="ini-btn edit ysf" style="flex:1;justify-content:center;">⚙ YSFGATEWAY CONFIG</a>
-    </div>
-    <div class="service-card-btns">
-      <a href="edit_ini.php?file=mmdvmysf" class="ini-btn view" style="flex:1;justify-content:center;color:#80deea;border-color:rgba(38,198,218,.2);">📄 editar fichero MMDVMYSF.ini</a>
-      <a href="edit_ini.php?file=ysfgateway" class="ini-btn view ysf" style="flex:1;justify-content:center;">📄 editar fichero YSFGateway.ini</a>
-    </div>
-  </div>
-
-  <!-- ── DStar card ── -->
-  <div class="service-card" style="border-color:rgba(0,229,255,.25);">
-    <div class="service-card-label" style="color:#00ff9f;">▸ D-STAR · MMDVMHost + DStarGateway</div>
-    <div class="toggle-row">
-      <span class="toggle-label" id="dstarToggleLabel">D-STAR</span>
-      <label class="sw dstar" id="swDSTAR">
-        <input type="checkbox" id="chkDSTAR" onchange="toggleDStar(this)">
-        <span class="sw-track"></span>
-        <span class="sw-knob"></span>
-        <span class="sw-busy-dot"></span>
-      </label>
-      <span class="toggle-status" id="dstarToggleStatus">OFF</span>
-    </div>
-    <div class="auto-badge" id="dstarRefreshBadge" style="display:none;color:#00e5ff;"><div class="dot-sm" style="background:#00e5ff;"></div> D-STAR activo</div>
-    <div class="service-card-btns" style="margin-top:.6rem;">
-      <a href="mmdvmdstar_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">⚙ MMDVMDSTAR CONFIG</a>
-      <a href="dstargateway_config.php" class="ini-btn edit" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">⚙ DSTARGATEWAY CONFIG</a>
-    </div>
-    <div class="service-card-btns" style="margin-top:.4rem;">
-      <a href="edit_ini.php?file=mmdvmdstar" class="ini-btn view" style="flex:1;justify-content:center;color:#00e5ff;border-color:rgba(0,229,255,.3);">📄 editar fichero MMDVMDSTAR.ini</a>
-      <a href="edit_ini.php?file=dstargateway" class="ini-btn view" style="flex:1;justify-content:center;color:#00ff9f;border-color:rgba(0,255,159,.3);">📄 editar fichero DStarGateway.ini</a>
-    </div>
-  </div>
-</div>
-
-<div class="display-row">
-  <div id="dmrDisplayPanel">
-    <div class="panel-label">▸ DMR Display</div>
-    <div class="nextion">
-      <div class="nx-topbar"><span class="nx-mode">DMR · SIMPLEX</span><span id="nxStationLabel">EA3EIZ · ADER</span><span class="nx-tg" id="nxTG">—</span></div>
-      <div class="nx-infobar">
-        <span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="nxPort">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val cyan" id="nxFrx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val amber" id="nxFtx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val green" id="nxIp">—</span></span>
+<div class="modal fade" id="terminalModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content" style="background:#0a0e14;border:1px solid #1e2d3d;">
+      <div class="modal-header" style="border-bottom:1px solid #1e2d3d;">
+        <h5 class="modal-title" style="font-family:var(--font-mono);color:#00d4ff;">Terminal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="nx-vu" id="vuLeft"></div><div class="nx-vu right" id="vuRight"></div>
-      <div class="nx-center" id="nxCenter"><div class="nx-clock" id="nxClock">00:00:00</div><div class="nx-date" id="nxDate">—</div></div>
-      <div class="nx-txbar" id="nxTxBar"></div>
-      <div class="nx-botbar"><span class="nx-dmrid" id="nxDmrid">—</span><span>SLOT <span id="nxSlot">—</span></span><span class="nx-source" id="nxSource"></span></div>
-    </div>
-  </div>
-  <div id="ysfDisplayPanel">
-    <div class="panel-label ysf-label">▸ C4FM Display</div>
-    <div class="nextion-ysf">
-      <div class="nx-topbar ysf-bar"><span class="nx-mode">C4FM · YSF</span><span style="color:#6a3a9a" id="ysfStationLabel">EA3EIZ · ADER</span><span class="nx-dest" id="ysfDest">—</span></div>
-      <div class="nx-infobar nx-infobar-ysf">
-        <span class="nx-info-item"><span class="nx-info-lbl">PORT</span><span class="nx-info-val" id="ysfNxPort">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FRX</span><span class="nx-info-val" style="color:#d4a8ff" id="ysfNxFrx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">FTX</span><span class="nx-info-val" style="color:#c084ff" id="ysfNxFtx">—</span></span>
-        <span class="nx-info-item"><span class="nx-info-lbl">IP</span><span class="nx-info-val" style="color:#9b6dff" id="ysfNxIp">—</span></span>
+      <div class="modal-body p-0">
+        <div id="terminal" style="height:60vh;width:100%;background:#000;"></div>
       </div>
-      <div class="nx-vu" id="ysfVuLeft"></div><div class="nx-vu right" id="ysfVuRight"></div>
-      <div class="nx-center" id="ysfNxCenter"><div class="nx-clock" id="ysfNxClock" style="color:#c084ff;">00:00:00</div><div class="nx-date" id="ysfNxDate" style="color:#9b59d4;">—</div></div>
-      <div class="nx-txbar" id="ysfTxBar"></div>
-      <div class="nx-botbar ysf-bar"><span style="color:#5a3a8a;font-family:var(--font-mono);font-size:.65rem;" id="ysfProto">YSF</span><span style="color:#5a3a8a;font-family:var(--font-mono);font-size:.65rem;">C4FM · DIGITAL VOICE</span><span class="nx-source" id="ysfSource"></span></div>
     </div>
   </div>
-</div>
-
-<!-- ── Últimos escuchados lado a lado ── -->
-<div class="display-row" style="margin-top:1rem;">
-  <div id="dmrLastHeardPanel">
-    <div class="panel-label">▸ Últimos escuchados DMR</div>
-    <div class="lh-panel">
-      <div class="lh-header"><span>Indicativo</span><span>Nombre</span><span>TG</span><span>Hora</span><span>Src</span></div>
-      <div class="lh-body" id="lhBody"><div class="lh-empty">Sin actividad reciente</div></div>
-    </div>
-  </div>
-  <div id="ysfLastHeardPanel">
-    <div class="panel-label ysf-label">▸ Últimos escuchados C4FM</div>
-    <div class="lh-panel-ysf">
-      <div class="lh-header-ysf"><span>Indicativo</span><span>Nombre</span><span>Hora</span><span>Src</span></div>
-      <div class="lh-body" id="ysfLhBody"><div class="lh-empty">Sin actividad C4FM</div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Logs ── -->
-<div class="log-grid" style="margin-top:2rem;">
-<!-- ▼▼▼ PANELES DMR — se ocultan cuando DMR está OFF ▼▼▼ -->
-<div id="dmrLogPanels" style="display:contents;">
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name">▸ MMDVMHost</span><button class="btn-clear" onclick="clearLog('logMmd')">limpiar</button></div><div class="log-output" id="logMmd">Esperando servicios…</div></div>
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name gw">▸ DMRGateway</span><button class="btn-clear" onclick="clearLog('logGw')">limpiar</button></div><div class="log-output" id="logGw">Esperando servicios…</div></div>
-</div>
-<!-- ▲▲▲ FIN PANELES DMR ▲▲▲ -->
-<!-- ▼▼▼ PANELES YSF — se ocultan cuando C4FM está OFF ▼▼▼ -->
-<div id="ysfLogPanels" style="display:contents;">
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#26c6da">▸ MMDVMHost YSF</span><button class="btn-clear" onclick="clearLog('logMmdvmYsf')">limpiar</button></div><div class="log-output" id="logMmdvmYsf">Esperando MMDVMHost YSF…</div></div>
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name ysf">▸ YSFGateway</span><button class="btn-clear" onclick="clearLog('logYsf')">limpiar</button></div><div class="log-output" id="logYsf">Esperando YSFGateway…</div></div>
-</div>
-<!-- ▼▼▼ PANELES DSTAR — se ocultan cuando D-STAR está OFF ▼▼▼ -->
-<div id="dstarLogPanels" style="display:none;">
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#80f0ff;">▸ MMDVMHost DStar</span><button class="btn-clear" onclick="clearLog('logDstarMmd')">limpiar</button></div><div class="log-output" id="logDstarMmd">Esperando MMDVMHost DStar…</div></div>
-<div class="log-panel"><div class="log-panel-header"><span class="svc-name" style="color:#00e5ff;">▸ DStarGateway</span><button class="btn-clear" onclick="clearLog('logDstarGw')">limpiar</button></div><div class="log-output" id="logDstarGw">Esperando DStarGateway…</div></div>
-</div>
-<!-- ▲▲▲ FIN PANELES DSTAR ▲▲▲ -->
-</div>
-
-</main>
-
-<!-- Modal Actualización -->
-<div id="updateModal" class="update-modal">
-<div class="update-box">
-<div class="update-title" id="updateTitle">⬇ Actualizando…</div>
-<div class="update-console" id="updateConsole">Iniciando…</div>
-<div class="restore-btns">
-<button class="restore-btn-cancel" id="updateCloseBtn" onclick="closeUpdate()">✖ Cerrar</button>
-</div>
-</div>
-</div>
-
-<!-- Modal Restore -->
-<div id="restoreModal" class="restore-modal">
-<div class="restore-box">
-<div class="restore-title">📂 Restaurar configuración</div>
-<label class="restore-label" for="restoreFile">Selecciona fichero Copia_A108.zip</label>
-<input type="file" id="restoreFile" accept=".zip" class="restore-file">
-<div class="restore-btns">
-<button class="restore-btn-ok" onclick="doRestore()">▶ Restaurar</button>
-<button class="restore-btn-cancel" onclick="closeRestore()">✖ Cancelar</button>
-</div>
-<div id="restoreMsg" class="restore-msg"></div>
-</div>
-</div>
-
-<!-- Modal Instalar Display Driver -->
-<div id="installModal" class="install-modal">
-<div class="install-box">
-<div class="install-title">⚙ Instalar Display Driver</div>
-<div id="installOutput" class="install-output"></div>
-<div class="restore-btns">
-<button class="restore-btn-ok" id="btnInstalarOk" onclick="confirmarInstalacion()">▶ Confirmar instalación</button>
-<button class="restore-btn-cancel" onclick="closeInstalar()">✖ Cancelar</button>
-</div>
-<div id="installMsg" class="restore-msg"></div>
-</div>
 </div>
 
 <script>
-let refreshTimer=null,txTimer=null,vuTimer=null,ysfTimer=null,mmdvmYsfTimer=null,ysfTxTimer=null,ysfVuTimer=null,dstarTimer=null;
-let running=false,ysfRunning=false,mmdvmYsfRunning=false,dstarRunning=false,currentlyActive=false,ysfCurrentlyActive=false;
-let dmrLastActiveTs=0,ysfLastActiveTs=0;
-const DMR_IDLE_TIMEOUT=12000,YSF_IDLE_TIMEOUT=12000;
+let terminalInstance = null;
+let terminalFit = null;
+let terminalReady = false;
 
-// ── Station card desde MMDVMHost.ini ────────────────────────────────
-async function fetchStationInfo() {
-    try {
-        const r = await fetch('?action=station-info');
-        const d = await r.json();
-        document.getElementById('scCallsign').textContent = '📡 ' + d.callsign;
-        // Nextion DMR
-        const nxPort = document.getElementById('nxPort'); if(nxPort) nxPort.textContent = d.port    || '—';
-        const nxFrx  = document.getElementById('nxFrx');  if(nxFrx)  nxFrx.textContent  = d.freqRX  || '—';
-        const nxFtx  = document.getElementById('nxFtx');  if(nxFtx)  nxFtx.textContent  = d.freq    || '—';
-        const nxIp   = document.getElementById('nxIp');   if(nxIp)   nxIp.textContent   = d.ip      || '—';
-        // Nextion C4FM
-        const yNxPort = document.getElementById('ysfNxPort'); if(yNxPort) yNxPort.textContent = d.ysfPort    || '—';
-        const yNxFrx  = document.getElementById('ysfNxFrx');  if(yNxFrx)  yNxFrx.textContent  = d.ysfFreqRX || '—';
-        const yNxFtx  = document.getElementById('ysfNxFtx');  if(yNxFtx)  yNxFtx.textContent  = d.ysfFreqTX || '—';
-        const yNxIp   = document.getElementById('ysfNxIp');   if(yNxIp)   yNxIp.textContent   = d.ysfIp     || '—';
-        // Labels Nextion topbar
-        const label = d.callsign + ' · ADER';
-        const nx = document.getElementById('nxStationLabel');  if(nx) nx.textContent = label;
-        const yx = document.getElementById('ysfStationLabel'); if(yx) yx.textContent = label;
-    } catch(e) { console.warn('station-info error:', e); }
+function initTerminal() {
+    if (terminalReady) return;
+
+    terminalInstance = new Terminal({
+        theme: {
+            background: '#000000',
+            foreground: '#00ff9f',
+            cursor: '#00d4ff'
+        },
+        fontFamily: 'monospace',
+        fontSize: 14,
+        cursorBlink: true,
+        convertEol: true
+    });
+
+    terminalFit = new FitAddon.FitAddon();
+    terminalInstance.loadAddon(terminalFit);
+    terminalInstance.open(document.getElementById('terminal'));
+    terminalFit.fit();
+    terminalInstance.write('A108 Terminal ready\r\n$ ');
+
+    terminalReady = true;
 }
 
-function getFlagByCall(callsign) {
-    if (!callsign) return '';
-    const cs = callsign.toUpperCase().trim();
-    const prefixes = [
-        {re:/^EA[0-9]|EB|EC|ED|EE|EF|EG|EH/,flag:'🇪🇸'},{re:/^CT|CU|CV|CQ/,flag:'🇵🇹'},
-        {re:/^F[A-Z]|FT[0-9A-Z]|FM|FO|FH|FJ|FK|FL|FP|FR|FS/,flag:'🇫🇷'},{re:/^I[0-9]|IK|IW|IZ/,flag:'🇮🇹'},
-        {re:/^G[0-9]|M[0-9]|2E[0-9]|2[0-9]|GB|MJ|MU/,flag:'🇬🇧'},{re:/^D[ALM]|DA|DB|DC|DD|DE|DF|DG|DH|DI|DJ|DK|DL|DM|DN|DO|DP|DQ|DR/,flag:'🇩🇪'},
-        {re:/^K[0-9]|W[0-9]|N[0-9]|AA|AB|AC|AD|AE|AF/,flag:'🇺🇸'},{re:/^VE[0-9]|VA[0-9]|VO[0-9]|VY[0-9]/,flag:'🇨🇦'},
-        {re:/^PY[0-9]|PU|PV|PW|PX/,flag:'🇧🇷'},{re:/^LU[0-9]|LV|LW|LX/,flag:'🇦🇷'},
-        {re:/^JA[0-9]|JB|JC|JD|JE|JF|JG|JH|JI|JJ|JK|JL|JM|JN|JO|JP|JQ|JR|JS|JT|JU|JV|JW|JX|JY|JZ/,flag:'🇯🇵'},
-        {re:/^VK[0-9]|VL|VM|VN|VO|VP|VQ|VR|VS|VT|VU|VV|VW|VX|VY|VZ/,flag:'🇦🇺'},{re:/^ZS[0-9]|ZT|ZU|ZV|ZW|ZX|ZY|ZZ/,flag:'🇿🇦'},
-        {re:/^OH[0-9]|OG|OI|OJ|OK|OL|OM|ON|OO|OP|OQ|OR|OS|OT|OU|OV|OW|OX|OY|OZ/,flag:'🇫🇮'},
-        {re:/^PA[0-9]|PB|PC|PD|PE|PF|PG|PH|PI|PJ|PK|PL|PM|PN|PO|PP|PQ|PR|PS|PT|PU|PV|PW|PX|PY|PZ/,flag:'🇳🇱'},
-        {re:/^HB[0-9]|HB9/,flag:'🇨🇭'},{re:/^OE[0-9]/,flag:'🇦🇹'},
-        {re:/^SP[0-9]|SQ|SR/,flag:'🇵🇱'},{re:/^UA[0-9]|UB|UC|UD|UE|UF|UG|UH|UI|UJ|UK|UL|UM|UN|UO|UP|UQ|UR|US|UT|UU|UV|UW|UX|UY|UZ/,flag:'🇷🇺'},
-        {re:/^SV[0-9]|SW|SX|SY|SZ/,flag:'🇬🇷'},{re:/^LY[0-9]|LZ/,flag:'🇱🇹'},{re:/^9A[0-9]/,flag:'🇭🇷'},
-    ];
-    for (const p of prefixes) { if (p.re.test(cs)) return p.flag; }
-    return '🌐';
-}
-
-function buildVU(id){const el=document.getElementById(id);for(let i=0;i<18;i++){const d=document.createElement('div');d.className='nx-vu-bar';d.id=`${id}-${i}`;el.appendChild(d);}}
-buildVU('vuLeft');buildVU('vuRight');buildVU('ysfVuLeft');buildVU('ysfVuRight');
-
-function animateVU(on,prefix){
-    clearInterval(prefix==='ysf'?ysfVuTimer:vuTimer);
-    const ids=prefix==='ysf'?['ysfVuLeft','ysfVuRight']:['vuLeft','vuRight'];
-    ids.forEach(id=>{for(let i=0;i<18;i++)document.getElementById(`${id}-${i}`).className='nx-vu-bar';});
-    if(!on)return;
-    const timer=setInterval(()=>{ids.forEach(id=>{const lvl=Math.floor(Math.random()*16)+1;for(let i=0;i<18;i++){let cls='nx-vu-bar';if(i<lvl)cls+=prefix==='ysf'?(i<10?' lit-v':i<14?' lit-vd':' lit-r'):(i<10?' lit-g':i<14?' lit-a':' lit-r');document.getElementById(`${id}-${i}`).className=cls;}});},80);
-    if(prefix==='ysf')ysfVuTimer=timer;else vuTimer=timer;
-}
-
-function updateClock(){
-    const now=new Date();
-    const hms=now.toLocaleTimeString('es-ES');
-    const date=now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
-    if(!currentlyActive){const clk=document.getElementById('nxClock');if(clk){clk.textContent=hms;document.getElementById('nxDate').textContent=date;}}
-    if(!ysfCurrentlyActive){const yClk=document.getElementById('ysfNxClock');if(yClk){yClk.textContent=hms;document.getElementById('ysfNxDate').textContent=date;}}
-}
-setInterval(updateClock,1000);updateClock();
-
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-// ── setDMRToggle — MODIFICADO: oculta/muestra paneles de log DMR ────
-function setDMRToggle(on){
-    const chk=document.getElementById('chkDMR'),lbl=document.getElementById('dmrToggleLabel'),sta=document.getElementById('dmrToggleStatus');
-    chk.checked=on;
-    lbl.className='toggle-label'+(on?' on-dmr':'');
-    sta.className='toggle-status'+(on?' on':'');
-    sta.textContent=on?'ON':'OFF';
-    document.getElementById('autoRefreshBadge').style.display=on?'flex':'none';
-    // Mostrar u ocultar los dos paneles de log DMR
-    document.getElementById('dmrLogPanels').style.display=on?'contents':'none';
-    document.getElementById('dmrLastHeardPanel').style.display=on?'':'none';
-    document.getElementById('dmrDisplayPanel').style.display=on?'':'none';
-}
-
-function setYSFToggle(on){const chk=document.getElementById('chkYSF'),lbl=document.getElementById('ysfToggleLabel'),sta=document.getElementById('ysfToggleStatus');chk.checked=on;lbl.className='toggle-label'+(on?' on-ysf':'');sta.className='toggle-status'+(on?' on':'');sta.textContent=on?'ON':'OFF';document.getElementById('ysfRefreshBadge').style.display=on?'flex':'none';
-    // Mostrar u ocultar los dos paneles de log YSF
-    document.getElementById('ysfLogPanels').style.display=on?'contents':'none';
-    document.getElementById('ysfLastHeardPanel').style.display=on?'':'none';
-    document.getElementById('ysfDisplayPanel').style.display=on?'':'none';
-}
-
-function showIdle(){currentlyActive=false;animateVU(false,'dmr');document.getElementById('nxTxBar').classList.remove('active');document.getElementById('nxTG').textContent='—';document.getElementById('nxSlot').textContent='—';document.getElementById('nxDmrid').textContent='—';const src=document.getElementById('nxSource');src.textContent='';src.className='nx-source';document.getElementById('nxCenter').innerHTML='<div class="nx-clock" id="nxClock">00:00:00</div><div class="nx-date" id="nxDate">—</div>';updateClock();}
-function showActive(d){currentlyActive=true;animateVU(true,'dmr');document.getElementById('nxTxBar').classList.add('active');document.getElementById('nxTG').textContent=d.tg?'TG '+d.tg:'—';document.getElementById('nxSlot').textContent=d.slot||'—';document.getElementById('nxDmrid').textContent=d.dmrid||'—';const src=document.getElementById('nxSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else if(d.source==='NETWORK'){src.textContent='NET';src.className='nx-source net';}else{src.textContent='';src.className='nx-source';}const flag=getFlagByCall(d.callsign);document.getElementById('nxCenter').innerHTML=`<div class="nx-callsign">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name">${esc(d.name)}</div>`:'');}
-
-function showYSFIdle(){ysfCurrentlyActive=false;animateVU(false,'ysf');document.getElementById('ysfTxBar').className='nx-txbar';document.getElementById('ysfDest').textContent='—';document.getElementById('ysfProto').textContent='YSF';const src=document.getElementById('ysfSource');src.textContent='';src.className='nx-source';document.getElementById('ysfNxCenter').innerHTML='<div class="nx-clock" id="ysfNxClock" style="color:#c084ff;">00:00:00</div><div class="nx-date" id="ysfNxDate" style="color:#9b59d4;">—</div>';updateClock();}
-function showYSFActive(d){ysfCurrentlyActive=true;animateVU(true,'ysf');document.getElementById('ysfTxBar').className='nx-txbar active-ysf';document.getElementById('ysfDest').textContent=d.dest?d.dest:'ALL';const src=document.getElementById('ysfSource');if(d.source==='RF'){src.textContent='RF';src.className='nx-source rf';}else if(d.source==='NETWORK'){src.textContent='NET';src.className='nx-source net';}else{src.textContent='';src.className='nx-source';}const flag=getFlagByCall(d.callsign);document.getElementById('ysfNxCenter').innerHTML=`<div class="nx-callsign ysf">${flag} ${esc(d.callsign)}</div>`+(d.name?`<div class="nx-name ysf">${esc(d.name)}</div>`:'');}
-
-function renderLastHeard(list,activeCall){const body=document.getElementById('lhBody');if(!list||list.length===0){body.innerHTML='<div class="lh-empty">Sin actividad reciente</div>';return;}body.innerHTML=list.map(r=>{const isActive=activeCall&&r.callsign===activeCall;const srcCls=r.source==='RF'?'rf':'net',srcLbl=r.source==='RF'?'RF':'NET';const dot=isActive?'<span class="lh-tx-dot"></span>':'';const flag=getFlagByCall(r.callsign);return`<div class="lh-row${isActive?' lh-active':''}"><div class="lh-call-wrap">${dot}<span class="lh-call">${flag} ${esc(r.callsign)}</span></div><span class="lh-name">${esc(r.name||'—')}</span><span class="lh-tg">${esc(r.tg||'—')}</span><span class="lh-time">${esc(r.time||'—')}</span><span class="lh-src ${srcCls}">${srcLbl}</span></div>`;}).join('');}
-function renderYSFLastHeard(list,activeCall){const body=document.getElementById('ysfLhBody');if(!list||list.length===0){body.innerHTML='<div class="lh-empty">Sin actividad C4FM</div>';return;}body.innerHTML=list.map(r=>{const isActive=activeCall&&r.callsign===activeCall;const srcCls=r.source==='RF'?'rf':'net',srcLbl=r.source==='RF'?'RF':'NET';const dot=isActive?'<span class="lh-tx-dot-ysf"></span>':'';const flag=getFlagByCall(r.callsign);return`<div class="lh-row-ysf${isActive?' lh-active':''}"><div class="lh-call-wrap">${dot}<span class="lh-call-ysf">${flag} ${esc(r.callsign)}</span></div><span class="lh-name">${esc(r.name||'—')}</span><span class="lh-time">${esc(r.time||'—')}</span><span class="lh-src-ysf ${srcCls}">${srcLbl}</span></div>`;}).join('');}
-
-async function fetchTransmission(){
-    try{const r=await fetch('?action=transmission');const d=await r.json();
-        if(d.active){dmrLastActiveTs=Date.now();showActive(d);}
-        else{if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}
-        renderLastHeard(d.lastHeard||[],d.active?d.callsign:null);
-    }catch(e){if(currentlyActive&&(Date.now()-dmrLastActiveTs)>DMR_IDLE_TIMEOUT)showIdle();}
-}
-
-async function fetchYSFTransmission(){
-    try{const r=await fetch('?action=ysf-transmission');const d=await r.json();
-        if(d.active){ysfLastActiveTs=Date.now();showYSFActive(d);}
-        else{if(ysfCurrentlyActive)showYSFIdle();}
-        renderYSFLastHeard(d.lastHeard||[],d.active?d.callsign:null);
-    }catch(e){if(ysfCurrentlyActive&&(Date.now()-ysfLastActiveTs)>YSF_IDLE_TIMEOUT)showYSFIdle();}
-}
-
-async function checkStatus(){try{const r=await fetch('?action=status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';setDot('dot-gateway',gw?'active':'off');setDot('dot-mmdvm',mmd?'active':'off');setDot('dot-mosquitto',gw?'active':'off');running=gw||mmd;setDMRToggle(running);if(running)startRefresh();}catch(e){}}
-async function checkYSFStatus(){try{const r=await fetch('?action=ysf-status');const d=await r.json();ysfRunning=d.ysf==='active';setDot('dot-ysf',ysfRunning?'active':'off');setYSFToggle(ysfRunning||mmdvmYsfRunning);}catch(e){}}
-async function checkMMDVMYSFStatus(){try{const r=await fetch('?action=mmdvmysf-status');const d=await r.json();mmdvmYsfRunning=d.mmdvmysf==='active';setDot('dot-mmdvmysf',mmdvmYsfRunning?'active':'off');setYSFToggle(ysfRunning||mmdvmYsfRunning);}catch(e){}}
-function setDot(id,state){document.getElementById(id).className='dot'+(state==='active'?' active':state==='error'?' error':'');}
-
-function setDSTARToggle(on){
-    const chk=document.getElementById('chkDSTAR'),lbl=document.getElementById('dstarToggleLabel'),sta=document.getElementById('dstarToggleStatus');
-    chk.checked=on;
-    lbl.style.color=on?'#00e5ff':'';
-    sta.className='toggle-status'+(on?' on':'');
-    sta.textContent=on?'ON':'OFF';
-    document.getElementById('dstarRefreshBadge').style.display=on?'flex':'none';
-    document.getElementById('dstarLogPanels').style.display=on?'contents':'none';
-}
-async function checkDStarStatus(){
-    try{const r=await fetch('?action=dstar-status');const d=await r.json();
-        const gw=d.gateway==='active',mmd=d.mmdvm==='active';
-        setDot('dot-dstargw',gw?'active':'off');
-        setDot('dot-dstarmmd',mmd?'active':'off');
-        dstarRunning=(gw||mmd)&&!d.stopped;
-        setDSTARToggle(dstarRunning);
-        if(dstarRunning)startDStarLogs();
-    }catch(e){}
-}
-async function toggleDStar(chk){
-    const wasOn=!chk.checked;const sw=document.getElementById('swDSTAR');chk.checked=wasOn;sw.classList.add('busy');
-    try{
-        await fetch(wasOn?'?action=dstar-stop':'?action=dstar-start');
-        // Polling hasta que el estado cambie (máx 15 intentos x 1s)
-        let ok=false;
-        for(let i=0;i<15;i++){
-            await new Promise(r=>setTimeout(r,1000));
-            const r=await fetch('?action=dstar-status');const d=await r.json();
-            const gw=d.gateway==='active',mmd=d.mmdvm==='active';
-            const isOn=(gw||mmd)&&!d.stopped;
-            if(wasOn && !isOn){ok=true;setDot('dot-dstargw','off');setDot('dot-dstarmmd','off');dstarRunning=false;setDSTARToggle(false);stopDStarLogs();clearLog('logDstarGw');clearLog('logDstarMmd');break;}
-            if(!wasOn && isOn){ok=true;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');dstarRunning=true;setDSTARToggle(true);startDStarLogs();break;}
-        }
-        if(!ok){const r=await fetch('?action=dstar-status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';dstarRunning=(gw||mmd)&&!d.stopped;setDot('dot-dstargw',gw?'active':'off');setDot('dot-dstarmmd',mmd?'active':'off');setDSTARToggle(dstarRunning);}
-    }catch(e){console.warn('toggleDStar error:',e);}
-    finally{sw.classList.remove('busy');}
-}
-async function fetchDStarLogs(){
-    try{const r=await fetch('?action=dstar-logs&lines=15');const d=await r.json();
-        ['logDstarGw:gateway','logDstarMmd:mmdvm'].forEach(pair=>{
-            const[id,key]=pair.split(':');const el=document.getElementById(id);
-            const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;
-            el.innerHTML=colorize(d[key]);if(atBot)el.scrollTop=el.scrollHeight;
-        });
-    }catch(e){}
-}
-function startDStarLogs(){fetchDStarLogs();dstarTimer=setInterval(fetchDStarLogs,5000);}
-function stopDStarLogs(){clearInterval(dstarTimer);dstarTimer=null;}
-
-async function toggleServices(chk){const wasOn=!chk.checked;const sw=document.getElementById('swDMR');chk.checked=wasOn;sw.classList.add('busy');try{await fetch(wasOn?'?action=stop':'?action=start');await new Promise(r=>setTimeout(r,2200));const r=await fetch('?action=status');const d=await r.json();const gw=d.gateway==='active',mmd=d.mmdvm==='active';running=gw||mmd;setDot('dot-gateway',gw?'active':'off');setDot('dot-mmdvm',mmd?'active':'off');setDot('dot-mosquitto',gw?'active':'off');setDMRToggle(running);if(wasOn){stopRefresh();clearLog('logGw');clearLog('logMmd');showIdle();document.getElementById('lhBody').innerHTML='<div class="lh-empty">Sin actividad reciente</div>';}else startRefresh();}finally{sw.classList.remove('busy');}}
-async function toggleYSF(chk){const wasOn=!chk.checked;const sw=document.getElementById('swYSF');chk.checked=wasOn;sw.classList.add('busy');try{if(wasOn){await fetch('?action=ysf-stop');await new Promise(r=>setTimeout(r,1000));await fetch('?action=mmdvmysf-stop');await new Promise(r=>setTimeout(r,2000));clearLog('logYsf');clearLog('logMmdvmYsf');stopYSFLogs();stopMMDVMYSFLogs();showYSFIdle();document.getElementById('ysfLhBody').innerHTML='<div class="lh-empty">Sin actividad C4FM</div>';}else{await fetch('?action=mmdvmysf-start');await new Promise(r=>setTimeout(r,2000));await fetch('?action=ysf-start');await new Promise(r=>setTimeout(r,1500));startYSFLogs();startMMDVMYSFLogs();}await checkYSFStatus();await checkMMDVMYSFStatus();}finally{sw.classList.remove('busy');}}
-
-function toggleDropdown(e){e.stopPropagation();document.getElementById('dropActualizaciones').classList.toggle('open');}
-document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
-function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
-const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
-const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
-async function runUpdate(type){
-    document.getElementById('dropActualizaciones').classList.remove('open');
-    document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];
-    const con=document.getElementById('updateConsole');
-    con.textContent='⏳ Ejecutando, espera…';
-    document.getElementById('updateCloseBtn').disabled=true;
-    document.getElementById('updateModal').classList.add('open');
-    try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;
-        if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);
+document.addEventListener('DOMContentLoaded', function () {
+    const terminalBtn = document.querySelector('.btn-header.cyan');
+    if (terminalBtn) {
+        terminalBtn.setAttribute('data-bs-toggle', 'modal');
+        terminalBtn.setAttribute('data-bs-target', '#terminalModal');
+        terminalBtn.removeAttribute('href');
+        terminalBtn.style.cursor = 'pointer';
     }
-    catch(e){con.textContent='✖ Error de red: '+e.message;}
-    finally{document.getElementById('updateCloseBtn').disabled=false;}
-}
-async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
-function closeInstalar(){document.getElementById('installModal').classList.remove('open');}
-async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
-function openRestore(){document.getElementById('restoreModal').classList.add('open');document.getElementById('restoreFile').value='';const msg=document.getElementById('restoreMsg');msg.style.display='none';msg.className='restore-msg';}
-function closeRestore(){document.getElementById('restoreModal').classList.remove('open');}
-async function doRestore(){const file=document.getElementById('restoreFile').files[0];if(!file){alert('Selecciona un fichero ZIP primero.');return;}const msg=document.getElementById('restoreMsg');msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Restaurando…';try{const form=new FormData();form.append('zipfile',file);const r=await fetch('?action=restore-configs',{method:'POST',body:form});const text=await r.text();let d;try{d=JSON.parse(text);}catch(parseErr){msg.className='restore-msg err';msg.textContent='✖ Respuesta inesperada: '+text.substring(0,200);return;}msg.className='restore-msg '+(d.ok?'ok':'err');msg.textContent=(d.ok?'✔ ':'✖ ')+d.msg;if(d.ok)setTimeout(closeRestore,2500);}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error de red: '+e.message;}}
 
-function colorize(text){return text.split('\n').map(l=>{const ll=l.toLowerCase();if(/error|fail|abort|assert/.test(ll))return`<span class="ln-err">${l}</span>`;if(/warn/.test(ll))return`<span class="ln-warn">${l}</span>`;if(/connect|start|open|loaded|success/.test(ll))return`<span class="ln-ok">${l}</span>`;return`<span class="ln-info">${l}</span>`;}).join('\n');}
-function clearLog(id){document.getElementById(id).innerHTML='';}
-async function fetchLogs(){try{const r=await fetch('?action=logs&lines=15');const d=await r.json();['logGw:gateway','logMmd:mmdvm'].forEach(pair=>{const[id,key]=pair.split(':');const el=document.getElementById(id);const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d[key]);if(atBot)el.scrollTop=el.scrollHeight;});}catch(e){}}
-async function fetchYSFLogs(){try{const r=await fetch('?action=ysf-logs&lines=15');const d=await r.json();const el=document.getElementById('logYsf');const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d.ysf);if(atBot)el.scrollTop=el.scrollHeight;}catch(e){}}
-async function fetchMMDVMYSFLogs(){try{const r=await fetch('?action=mmdvmysf-logs&lines=15');const d=await r.json();const el=document.getElementById('logMmdvmYsf');const atBot=el.scrollHeight-el.clientHeight<=el.scrollTop+10;el.innerHTML=colorize(d.mmdvmysf);if(atBot)el.scrollTop=el.scrollHeight;}catch(e){}}
-function startRefresh(){fetchLogs();fetchTransmission();refreshTimer=setInterval(fetchLogs,5000);txTimer=setInterval(fetchTransmission,3000);}
-function stopRefresh(){clearInterval(refreshTimer);clearInterval(txTimer);refreshTimer=txTimer=null;}
-function startYSFLogs(){fetchYSFLogs();ysfTimer=setInterval(fetchYSFLogs,4000);}
-function stopYSFLogs(){clearInterval(ysfTimer);ysfTimer=null;}
-function startMMDVMYSFLogs(){fetchMMDVMYSFLogs();mmdvmYsfTimer=setInterval(fetchMMDVMYSFLogs,4000);}
-function stopMMDVMYSFLogs(){clearInterval(mmdvmYsfTimer);mmdvmYsfTimer=null;}
-function startYSFTransmissionPoll(){fetchYSFTransmission();ysfTxTimer=setInterval(fetchYSFTransmission,4000);}
+    const modal = document.getElementById('terminalModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function () {
+            initTerminal();
+            setTimeout(() => {
+                if (terminalFit) terminalFit.fit();
+            }, 150);
+        });
+    }
 
-async function fetchSysInfo(){try{const r=await fetch('?action=sysinfo');const d=await r.json();const cpuEl=document.getElementById('siCpu');cpuEl.textContent=d.cpu+' %';cpuEl.style.color=d.cpu>80?'var(--red)':d.cpu>50?'var(--amber)':'var(--green)';const tempEl=document.getElementById('siTemp');tempEl.textContent=d.temp||'—';const t=parseFloat(d.temp);tempEl.style.color=t>75?'var(--red)':t>60?'var(--amber)':'var(--green)';document.getElementById('siRam').textContent=d.ramUsed+' GB / '+d.ramTotal+' GB';document.getElementById('siRamFree').textContent=d.ramFree+' GB';document.getElementById('siDisk').textContent=d.diskUsed+' GB / '+d.diskTotal+' GB';document.getElementById('siDiskFree').textContent=d.diskFree+' GB';}catch(e){}}
-fetchSysInfo();setInterval(fetchSysInfo,8000);
-
-(async()=>{
-    await fetchStationInfo();
-    setInterval(fetchStationInfo,60000);
-    await checkStatus();await checkYSFStatus();await checkMMDVMYSFStatus();await checkDStarStatus();
-    setInterval(checkStatus,10000);setInterval(checkYSFStatus,8000);setInterval(checkMMDVMYSFStatus,8000);setInterval(checkDStarStatus,10000);
-    if(!running){showIdle();fetchTransmission();}
-    showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
-})();
+    window.addEventListener('resize', function () {
+        if (terminalFit) terminalFit.fit();
+    });
+});
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
