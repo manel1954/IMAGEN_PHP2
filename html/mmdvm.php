@@ -42,7 +42,7 @@ function formatFreq($hz) {
 
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
-    $out = $cmd !== '' ? (shell_exec($cmd . ' 2>&1') ?? '') : '';
+    $out = $cmd !== '' ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '') : '';
     header('Content-Type: application/json');
     echo json_encode(['output' => htmlspecialchars($out)]);
     exit;
@@ -772,7 +772,10 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
     xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
-        xtCwd=(t==='~')?'/home/pi':t;
+        if(t==='~'||t==='')xtCwd='/home/pi';
+        else if(t.startsWith('/'))xtCwd=t;
+        else if(t==='..'){var parts=xtCwd.split('/').filter(Boolean);parts.pop();xtCwd='/'+parts.join('/')||'/';}
+        else xtCwd=xtCwd.replace(/\/$/,'')+'/'+t;
         document.getElementById('xtPr').textContent=xtPr();
         document.getElementById('xtTtl').textContent=xtPr();
         return;
