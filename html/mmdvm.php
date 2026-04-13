@@ -484,9 +484,8 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
-
+<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 </div>
 </header>
 <main class="ctrl-body">
@@ -624,10 +623,10 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
   <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
-  <div class="xterm-out" id="xtOut">pi@raspberry:~$ Terminal lista
+  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
 </div>
   <div class="xterm-row">
-    <span class="xterm-pr" id="xtPr">pi@raspberry:~$</span>
+    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
   </div>
   <div class="restore-btns">
@@ -764,6 +763,8 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
     var cmd=this.value.trim();if(!cmd)return;
     xtHist.unshift(cmd);xtHidx=-1;this.value='';
     xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
+    if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
+    if(/^\s*(sudo\s+su|su\s*$|top|htop|nano|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado en terminal web. Ya ejecutas como usuario pi.</span>');return;}
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
         if(t==='~'||t==='')xtCwd='/home/pi';
