@@ -3,7 +3,7 @@
 # path usuario
 usuario="/home/pi"
 usuario="$usuario"
-fecha_imagen="14-04-26"
+fecha_imagen="15-04-26"
 nombre_imagen="PHP2-"
 version=$nombre_imagen$fecha_imagen
 
