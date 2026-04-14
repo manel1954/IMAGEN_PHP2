@@ -78,13 +78,13 @@ if ($action === 'terminal') {
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-    // $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
-    // $dmrid    = $ini['General']['Id'] ?? '214317526';
-    // $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
-    // $lat      = $ini['Info']['Latitude']    ?? '41.3851';
-    // $lon      = $ini['Info']['Longitude']   ?? '2.1734';
-    // $location = $ini['Info']['Location']    ?? 'Barcelona';
-    // $desc     = $ini['Info']['Description'] ?? '';
+    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
+    $dmrid    = $ini['General']['Id'] ?? '214317526';
+    $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
+    $lat      = $ini['Info']['Latitude']    ?? '41.3851';
+    $lon      = $ini['Info']['Longitude']   ?? '2.1734';
+    $location = $ini['Info']['Location']    ?? 'Barcelona';
+    $desc     = $ini['Info']['Description'] ?? '';
     $locator  = (floatval($lat) != 0 || floatval($lon) != 0) ? latLonToLocator($lat, $lon) : 'JN11CK';
     $port     = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
     $rxhz     = $ini['Info']['RXFrequency'] ?? '0';
@@ -567,8 +567,9 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 <button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
+<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+
 </div>
 </header>
 <main class="ctrl-body">
