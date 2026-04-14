@@ -40,6 +40,33 @@ function formatFreq($hz) {
     return number_format($mhz, 3, '.', '') . ' MHz';
 }
 
+if ($action === 'read-file') {
+    $path = trim($_POST['path'] ?? '');
+    if ($path === '' || !file_exists($path)) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok'=>false,'msg'=>'Fichero no encontrado: '.$path]);
+        exit;
+    }
+    $content = file_get_contents($path);
+    header('Content-Type: application/json');
+    echo json_encode(['ok'=>true,'content'=>$content,'path'=>$path]);
+    exit;
+}
+
+if ($action === 'save-file') {
+    $path    = trim($_POST['path'] ?? '');
+    $content = $_POST['content'] ?? '';
+    if ($path === '') {
+        header('Content-Type: application/json');
+        echo json_encode(['ok'=>false,'msg'=>'Ruta vacía']);
+        exit;
+    }
+    $result = file_put_contents($path, $content);
+    header('Content-Type: application/json');
+    echo json_encode($result !== false ? ['ok'=>true,'msg'=>'Guardado correctamente'] : ['ok'=>false,'msg'=>'Error al escribir el fichero']);
+    exit;
+}
+
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
     $out = $cmd !== '' ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '') : '';
@@ -51,12 +78,12 @@ if ($action === 'terminal') {
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
-    $dmrid    = $ini['General']['Id'] ?? '214317526';
-    $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
-    $lat      = $ini['Info']['Latitude']    ?? '41.3851';
-    $lon      = $ini['Info']['Longitude']   ?? '2.1734';
-    $location = $ini['Info']['Location']    ?? 'Barcelona';
+    $callsign = $ini['General']['Callsign'] ?? '';
+    // $dmrid    = $ini['General']['Id'] ?? '214317526';
+    // $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
+    // $lat      = $ini['Info']['Latitude']    ?? '41.3851';
+    // $lon      = $ini['Info']['Longitude']   ?? '2.1734';
+    // $location = $ini['Info']['Location']    ?? 'Barcelona';
     $desc     = $ini['Info']['Description'] ?? '';
     $locator  = (floatval($lat) != 0 || floatval($lon) != 0) ? latLonToLocator($lat, $lon) : 'JN11CK';
     $port     = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
@@ -286,7 +313,7 @@ if ($action === 'ysf-transmission') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Panel Control</title>
+<title>Panel ADER</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
@@ -509,6 +536,17 @@ button.btn-header { font-family: var(--font-mono); }
 .xterm-pr { font-family:var(--font-mono); font-size:.78rem; color:#00ff9f; white-space:nowrap; }
 .xterm-inp { flex:1; background:transparent; border:none; outline:none; font-family:var(--font-mono); font-size:.78rem; color:#c9d1d9; caret-color:#00ff9f; }
 .xt-cmd{color:#c9d1d9;} .xt-out{color:#7a9ab5;} .xt-err{color:#f85149;}
+/* ── Editor ficheros ── */
+.fedit-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9700;align-items:center;justify-content:center;}
+.fedit-modal.open{display:flex;}
+.fedit-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;width:900px;max-width:96vw;display:flex;flex-direction:column;gap:.8rem;}
+.fedit-title{font-family:var(--font-mono);font-size:.8rem;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;}
+.fedit-path{font-family:var(--font-mono);font-size:.72rem;color:var(--amber);letter-spacing:.06em;margin-bottom:.2rem;}
+.fedit-area{font-family:var(--font-mono);font-size:.78rem;color:#c9d1d9;background:#060c10;border:1px solid var(--border);border-radius:4px;padding:.8rem;height:420px;resize:vertical;outline:none;line-height:1.5;width:100%;tab-size:4;}
+.fedit-area:focus{border-color:var(--cyan);}
+.fedit-msg{font-family:var(--font-mono);font-size:.75rem;display:none;padding:.4rem .8rem;border-radius:4px;border:1px solid;}
+.fedit-msg.ok{color:var(--green);border-color:var(--green);background:rgba(0,255,159,.06);}
+.fedit-msg.err{color:var(--red);border-color:var(--red);background:rgba(255,69,96,.06);}
 </style>
 </head>
 <body>
@@ -526,7 +564,7 @@ button.btn-header { font-family: var(--font-mono); }
   <div class="dropdown-menu-custom">
     <button class="dropdown-item-custom" onclick="runUpdate('imagen')">🖼 Actualizar Imagen</button>
     <button class="dropdown-item-custom" onclick="runUpdate('ids')">📋 Actualizar IDs</button>
-    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores</button>
+    <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
 <button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
@@ -696,14 +734,28 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 </main>
 
+<!-- Modal Editor Ficheros -->
+<div id="feditModal" class="fedit-modal" onclick="if(event.target===this)feditClose()">
+<div class="fedit-box">
+  <div class="fedit-title">📝 Editor de fichero</div>
+  <div class="fedit-path" id="feditPath">—</div>
+  <textarea class="fedit-area" id="feditArea" spellcheck="false"></textarea>
+  <div class="fedit-msg" id="feditMsg"></div>
+  <div class="restore-btns">
+    <button class="restore-btn-ok" onclick="feditSave()">💾 Guardar</button>
+    <button class="restore-btn-cancel" onclick="feditClose()">✖ Cerrar</button>
+  </div>
+</div>
+</div>
+
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
-  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
-  <div class="xterm-out" id="xtOut">pi@raspberry:~ $ Terminal lista
+  <div class="xterm-title">⌨ Terminal · ADER</div>
+  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
 </div>
   <div class="xterm-row">
-    <span class="xterm-pr" id="xtPr">pi@raspberry:~ $</span>
+    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
   </div>
   <div class="restore-btns">
@@ -812,7 +864,7 @@ async function toggleYSF(chk){const wasOn=!chk.checked;const sw=document.getElem
 function toggleDropdown(e){e.stopPropagation();document.getElementById('dropActualizaciones').classList.toggle('open');}
 document.addEventListener('click',()=>document.getElementById('dropActualizaciones').classList.remove('open'));
 function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
-const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores'};
+const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
 const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
 async function runUpdate(type){document.getElementById('dropActualizaciones').classList.remove('open');document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];const con=document.getElementById('updateConsole');con.textContent='⏳ Ejecutando, espera…';document.getElementById('updateCloseBtn').disabled=true;document.getElementById('updateModal').classList.add('open');try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);}catch(e){con.textContent='✖ Error de red: '+e.message;}finally{document.getElementById('updateCloseBtn').disabled=false;}}
 async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
@@ -837,6 +889,35 @@ function startYSFTransmissionPoll(){fetchYSFTransmission();ysfTxTimer=setInterva
 async function fetchSysInfo(){try{const r=await fetch('?action=sysinfo');const d=await r.json();const cpuEl=document.getElementById('siCpu');cpuEl.textContent=d.cpu+' %';cpuEl.style.color=d.cpu>80?'var(--red)':d.cpu>50?'var(--amber)':'var(--green)';const tempEl=document.getElementById('siTemp');tempEl.textContent=d.temp||'—';const t=parseFloat(d.temp);tempEl.style.color=t>75?'var(--red)':t>60?'var(--amber)':'var(--green)';document.getElementById('siRam').textContent=d.ramUsed+' GB / '+d.ramTotal+' GB';document.getElementById('siRamFree').textContent=d.ramFree+' GB';document.getElementById('siDisk').textContent=d.diskUsed+' GB / '+d.diskTotal+' GB';document.getElementById('siDiskFree').textContent=d.diskFree+' GB';}catch(e){}}
 fetchSysInfo();setInterval(fetchSysInfo,8000);
 
+/* ── Editor ficheros ── */
+async function feditOpen(path){
+    const msg=document.getElementById('feditMsg');
+    msg.style.display='none';
+    document.getElementById('feditPath').textContent=path;
+    document.getElementById('feditArea').value='Cargando…';
+    document.getElementById('feditModal').classList.add('open');
+    try{
+        const r=await fetch('?action=read-file',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'path='+encodeURIComponent(path)});
+        const d=await r.json();
+        if(d.ok){document.getElementById('feditArea').value=d.content;document.getElementById('feditArea').focus();}
+        else{document.getElementById('feditArea').value='';msg.className='fedit-msg err';msg.textContent='✖ '+d.msg;msg.style.display='block';}
+    }catch(e){document.getElementById('feditArea').value='';msg.className='fedit-msg err';msg.textContent='✖ Error: '+e.message;msg.style.display='block';}
+}
+async function feditSave(){
+    const path=document.getElementById('feditPath').textContent;
+    const content=document.getElementById('feditArea').value;
+    const msg=document.getElementById('feditMsg');
+    try{
+        const r=await fetch('?action=save-file',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'path='+encodeURIComponent(path)+'&content='+encodeURIComponent(content)});
+        const d=await r.json();
+        msg.className='fedit-msg '+(d.ok?'ok':'err');
+        msg.textContent=(d.ok?'✔ ':'✖ ')+d.msg;
+        msg.style.display='block';
+        if(d.ok)setTimeout(()=>{msg.style.display='none';},3000);
+    }catch(e){msg.className='fedit-msg err';msg.textContent='✖ Error: '+e.message;msg.style.display='block';}
+}
+function feditClose(){document.getElementById('feditModal').classList.remove('open');}
+
 /* ── Terminal ── */
 (function(){
 var xtHist=[],xtHidx=-1,xtCwd='/home/pi';
@@ -854,7 +935,14 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
     xtHist.unshift(cmd);xtHidx=-1;this.value='';
     xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
     if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
-    if(/^\s*(sudo\s+su|su\s*$|top|htop|nano|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado en terminal web. Ya ejecutas como usuario pi.</span>');return;}
+    if(/^\s*edit\s+\S/.test(cmd)){
+        var fpath=cmd.replace(/^\s*edit\s+/,'').trim();
+        if(!fpath.startsWith('/'))fpath=xtCwd.replace(/\/$/,'')+'/'+fpath;
+        xtApp('<span class="xt-out">Abriendo editor: '+xtEsc(fpath)+'</span>');
+        feditOpen(fpath);
+        return;
+    }
+    if(/^\s*(sudo\s+su|su\s*$|top|htop|nano|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
         if(t==='~'||t==='')xtCwd='/home/pi';
