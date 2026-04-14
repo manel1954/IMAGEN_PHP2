@@ -6,7 +6,7 @@
                         sudo rm -R /home/pi/A108
                         mkdir /home/pi/A108                                                
                         cp /home/pi/IMAGEN_PHP2/* /home/pi/A108
-                        cp /home/pi/IMAGEN_PHP2/html/* /var/www/html/
+                        cp -R /home/pi/IMAGEN_PHP2/html/* /var/www/html/
                         sleep 6                                             
                         sudo chmod 777 -R /home/pi/A108   
                         sudo chmod 777 -R /var/www/html
