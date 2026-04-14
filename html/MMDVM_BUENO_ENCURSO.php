@@ -69,6 +69,12 @@ if ($action === 'save-file') {
 
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
+    // Bloquear comandos interactivos que no deben llegar al servidor
+    if (preg_match('/^\s*(nano|vim|vi|less|more|top|htop|su|edit)\s*/i', $cmd)) {
+        header('Content-Type: application/json');
+        echo json_encode(['output' => 'Comando interactivo no soportado. Usa: edit /ruta/fichero']);
+        exit;
+    }
     $out = $cmd !== '' ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '') : '';
     header('Content-Type: application/json');
     echo json_encode(['output' => htmlspecialchars($out)]);
@@ -78,12 +84,12 @@ if ($action === 'terminal') {
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-    $callsign = $ini['General']['Callsign'] ?? '';
-    // $dmrid    = $ini['General']['Id'] ?? '214317526';
-    // $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
-    // $lat      = $ini['Info']['Latitude']    ?? '41.3851';
-    // $lon      = $ini['Info']['Longitude']   ?? '2.1734';
-    // $location = $ini['Info']['Location']    ?? 'Barcelona';
+    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
+    $dmrid    = $ini['General']['Id'] ?? '214317526';
+    $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
+    $lat      = $ini['Info']['Latitude']    ?? '41.3851';
+    $lon      = $ini['Info']['Longitude']   ?? '2.1734';
+    $location = $ini['Info']['Location']    ?? 'Barcelona';
     $desc     = $ini['Info']['Description'] ?? '';
     $locator  = (floatval($lat) != 0 || floatval($lon) != 0) ? latLonToLocator($lat, $lon) : 'JN11CK';
     $port     = $ini['Modem']['UARTPort'] ?? ($ini['modem']['UARTPort'] ?? '');
@@ -511,7 +517,7 @@ button.btn-header { font-family: var(--font-mono); }
 .install-output { font-family: var(--font-mono); font-size: .72rem; color: #7a9ab5; background: #060c10; border: 1px solid var(--border); border-radius: 4px; padding: .8rem; height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-bottom: 1rem; display: none; }
 .install-output.visible { display: block; }
 .dropdown-wrap { position: relative; display: inline-block; }
-.dropdown-menu-custom { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 280px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; padding-top: .4rem; }
+.dropdown-menu-custom { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; min-width: 270px; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.5); overflow: hidden; padding-top: .4rem; }
 .dropdown-wrap:hover .dropdown-menu-custom { display: block; }
 .dropdown-wrap::after { content: ''; position: absolute; top: 100%; left: 0; right: 0; height: .4rem; }
 .dropdown-item-custom { display: block; width: 100%; padding: .55rem 1rem; font-family: var(--font-mono); font-size: .75rem; letter-spacing: .07em; text-transform: uppercase; color: var(--text); background: none; border: none; cursor: pointer; text-align: left; transition: background .15s, color .15s; border-bottom: 1px solid var(--border); }
@@ -567,9 +573,8 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
-
+<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 </div>
 </header>
 <main class="ctrl-body">
@@ -751,7 +756,7 @@ button.btn-header { font-family: var(--font-mono); }
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
-  <div class="xterm-title">⌨ Terminal · ADER</div>
+  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
   <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
 </div>
   <div class="xterm-row">
@@ -866,7 +871,7 @@ document.addEventListener('click',()=>document.getElementById('dropActualizacion
 function closeUpdate(){document.getElementById('updateModal').classList.remove('open');}
 const UPDATE_TITLES={imagen:'🖼 Actualizar Imagen',ids:'📋 Actualizar IDs',ysf:'📡 Actualizar Reflectores YSF'};
 const UPDATE_ACTIONS={imagen:'?action=update-imagen',ids:'?action=update-ids',ysf:'?action=update-ysf'};
-async function runUpdate(type){document.getElementById('dropActualizaciones').classList.remove('open');document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];const con=document.getElementById('updateConsole');con.textContent='⏳ Ejecutando, espera…';document.getElementById('updateCloseBtn').disabled=true;document.getElementById('updateModal').classList.add('open');try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;if(type==='imagen'||type==='ids'||type==='ysf')setTimeout(closeUpdate,2000);}catch(e){con.textContent='✖ Error de red: '+e.message;}finally{document.getElementById('updateCloseBtn').disabled=false;}}
+async function runUpdate(type){document.getElementById('dropActualizaciones').classList.remove('open');document.getElementById('updateTitle').textContent=UPDATE_TITLES[type];const con=document.getElementById('updateConsole');con.textContent='⏳ Ejecutando, espera…';document.getElementById('updateCloseBtn').disabled=true;document.getElementById('updateModal').classList.add('open');try{const r=await fetch(UPDATE_ACTIONS[type]);const d=await r.json();con.textContent=d.output||'(sin salida)';con.scrollTop=con.scrollHeight;}catch(e){con.textContent='✖ Error de red: '+e.message;}finally{document.getElementById('updateCloseBtn').disabled=false;}}
 async function rebootPi(){if(!confirm('¿Seguro que quieres reiniciar la Raspberry Pi?'))return;const btn=document.getElementById('btnReboot');btn.textContent='⏻ Reiniciando…';btn.disabled=true;await fetch('?action=reboot');}
 function closeInstalar(){document.getElementById('installModal').classList.remove('open');}
 async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
