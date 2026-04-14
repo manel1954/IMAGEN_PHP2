@@ -118,4 +118,4 @@ sudo rm -R /home/pi/A108/associacioader.com
 sudo rm -R /home/pi/IMAGEN_PHP2/associacioader.com
 sudo rm /home/pi/IMAGEN_PHP2/Desktop/st-data
 sudo rm /home/pi/Desktop/st-data
-
+ 
