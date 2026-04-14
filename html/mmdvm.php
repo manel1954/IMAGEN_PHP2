@@ -750,7 +750,7 @@ button.btn-header { font-family: var(--font-mono); }
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
-  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
+  <div class="xterm-title">⌨ Terminal · ADER</div>
   <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
 </div>
   <div class="xterm-row">
