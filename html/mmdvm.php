@@ -941,8 +941,8 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
     xtHist.unshift(cmd);xtHidx=-1;this.value='';
     xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
     if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
-    if(/^\s*edit\s+\S/.test(cmd)){
-        var fpath=cmd.replace(/^\s*edit\s+/,'').trim();
+   if(/^\s*nano\s+\S/.test(cmd)){
+    var fpath=cmd.replace(/^\s*nano\s+/,'').trim();
         if(!fpath.startsWith('/'))fpath=xtCwd.replace(/\/$/,'')+'/'+fpath;
         xtApp('<span class="xt-out">Abriendo editor: '+xtEsc(fpath)+'</span>');
         feditOpen(fpath);
