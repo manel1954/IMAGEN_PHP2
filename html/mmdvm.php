@@ -941,14 +941,14 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
     xtHist.unshift(cmd);xtHidx=-1;this.value='';
     xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
     if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
-if(/^\s*nano\s+\S/.test(cmd)){
-    var fpath=cmd.replace(/^\s*nano\s+/,'').trim();
+    if(/^\s*edit\s+\S/.test(cmd)){
+        var fpath=cmd.replace(/^\s*edit\s+/,'').trim();
         if(!fpath.startsWith('/'))fpath=xtCwd.replace(/\/$/,'')+'/'+fpath;
         xtApp('<span class="xt-out">Abriendo editor: '+xtEsc(fpath)+'</span>');
         feditOpen(fpath);
         return;
     }
-    if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
+    if(/^\s*(sudo\s+su|su\s*$|top|htop|nano|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
         if(t==='~'||t==='')xtCwd='/home/pi';
