@@ -573,8 +573,9 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 <button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
+<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+
 </div>
 </header>
 <main class="ctrl-body">
@@ -757,10 +758,10 @@ button.btn-header { font-family: var(--font-mono); }
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
   <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
-  <div class="xterm-out" id="xtOut">pi@pi:~$ Terminal lista
+  <div class="xterm-out" id="xtOut">pi@raspberry:~$ Terminal lista
 </div>
   <div class="xterm-row">
-    <span class="xterm-pr" id="xtPr">pi@pi:~$</span>
+    <span class="xterm-pr" id="xtPr">pi@raspberry:~$</span>
     <input id="xtInp" class="xterm-inp" autocomplete="off" spellcheck="false" placeholder="escribe un comando…">
   </div>
   <div class="restore-btns">
@@ -926,11 +927,11 @@ function feditClose(){document.getElementById('feditModal').classList.remove('op
 /* ── Terminal ── */
 (function(){
 var xtHist=[],xtHidx=-1,xtCwd='/home/pi';
-function xtPr(){return 'pi@pi:'+xtCwd.replace('/home/pi','~')+'$';}
+function xtPr(){return 'pi@raspberry:'+xtCwd.replace('/home/pi','~')+'$';}
 function xtApp(html){var o=document.getElementById('xtOut');o.innerHTML+=html+'\n';o.scrollTop=o.scrollHeight;}
 function xtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 window.xtOpen=function(){document.getElementById('xtModal').classList.add('open');setTimeout(function(){document.getElementById('xtInp').focus();},80);};
-window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');};
+window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');document.getElementById('xtOut').innerHTML='pi@raspberry:~$ Terminal lista\n';};
 document.getElementById('xtInp').addEventListener('keydown',async function(e){
     if(e.key==='Escape'){xtClose();return;}
     if(e.key==='ArrowUp'){e.preventDefault();if(xtHidx<xtHist.length-1)this.value=xtHist[++xtHidx]||'';return;}
