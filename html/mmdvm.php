@@ -70,7 +70,7 @@ if ($action === 'save-file') {
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
     // Bloquear comandos interactivos que no deben llegar al servidor
-   if (preg_match('/^\s*(vim|vi|less|more|top|htop|su|edit)\s*/i', $cmd)) {
+    if (preg_match('/^\s*(nano|vim|vi|less|more|top|htop|su|edit)\s*/i', $cmd)) {
         header('Content-Type: application/json');
         echo json_encode(['output' => 'Comando interactivo no soportado. Usa: edit /ruta/fichero']);
         exit;
