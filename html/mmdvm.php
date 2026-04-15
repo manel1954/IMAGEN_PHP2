@@ -70,7 +70,7 @@ if ($action === 'save-file') {
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
     // Bloquear comandos interactivos que no deben llegar al servidor
-    if (preg_match('/^\s*(vim|vi|less|more|top|htop|su|edit)\s*/i', $cmd)) {
+   if (preg_match('/^\s*(vim|vi|less|more|top|htop|su)\s*/i', $cmd)) {
         header('Content-Type: application/json');
         echo json_encode(['output' => 'Comando interactivo no soportado. Usa: edit /ruta/fichero']);
         exit;
@@ -948,7 +948,7 @@ document.getElementById('xtInp').addEventListener('keydown',async function(e){
         feditOpen(fpath);
         return;
     }
-    if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
+if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: nano /ruta/fichero</span>');return;}
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
         if(t==='~'||t==='')xtCwd='/home/pi';
