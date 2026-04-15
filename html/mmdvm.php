@@ -573,7 +573,7 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button class="btn-header cyan" onclick="window.open('http://0.0.0.0:7681','_blank')">⌨ Terminal</button>
+<button class="btn-header cyan" onclick="window.open('http://'+window.location.hostname+':7681','_blank')">⌨ Terminal</button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
 </div>
