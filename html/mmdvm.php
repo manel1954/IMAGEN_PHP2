@@ -931,7 +931,7 @@ function xtPr(){return 'pi@raspberry:'+xtCwd.replace('/home/pi','~')+'$';}
 function xtApp(html){var o=document.getElementById('xtOut');o.innerHTML+=html+'\n';o.scrollTop=o.scrollHeight;}
 function xtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 window.xtOpen=function(){document.getElementById('xtModal').classList.add('open');setTimeout(function(){document.getElementById('xtInp').focus();},80);};
-window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');};
+// window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');};
 document.getElementById('xtInp').addEventListener('keydown',async function(e){
     if(e.key==='Escape'){xtClose();return;}
     if(e.key==='ArrowUp'){e.preventDefault();if(xtHidx<xtHist.length-1)this.value=xtHist[++xtHidx]||'';return;}
