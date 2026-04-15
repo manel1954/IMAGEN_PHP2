@@ -70,7 +70,7 @@ if ($action === 'save-file') {
 if ($action === 'terminal') {
     $cmd = trim($_POST['cmd'] ?? '');
     // Bloquear comandos interactivos que no deben llegar al servidor
-   if (preg_match('/^\s*(vim|vi|less|more|top|htop|su|edit)\s*/i', $cmd)) {
+   if (preg_match('/^\s*(vim|vi|less|more|htop|su|edit)\s*/i', $cmd)) {
         header('Content-Type: application/json');
         echo json_encode(['output' => 'Comando interactivo no soportado. Usa: edit /ruta/fichero']);
         exit;
@@ -948,7 +948,15 @@ if(/^\s*nano\s+\S/.test(cmd)){
         feditOpen(fpath);
         return;
     }
-    if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
+    if(/^\s*top(\s|$)/.test(cmd)){
+    try{
+        var resp=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent('cd '+xtCwd+' && top -bn1 | head -40')});
+        var dat=await resp.json();
+        if(dat.output)xtApp('<span class="xt-out">'+dat.output+'</span>');
+    }catch(err){xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');}
+    return;
+}
+if(/^\s*(sudo\s+su|su\s*$|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: edit /ruta/fichero</span>');return;}
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
         if(t==='~'||t==='')xtCwd='/home/pi';
