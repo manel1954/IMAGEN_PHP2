@@ -950,7 +950,7 @@ if(/^\s*nano\s+\S/.test(cmd)){
     }
     if(/^\s*top(\s|$)/.test(cmd)){
     try{
-        var resp=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent('cd '+xtCwd+' && top -bn1 | head -80')});
+        var resp=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent('cd '+xtCwd+' && top -bn1 | head 80')});
         var dat=await resp.json();
         if(dat.output)xtApp('<span class="xt-out">'+dat.output+'</span>');
     }catch(err){xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');}
