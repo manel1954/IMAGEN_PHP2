@@ -105,7 +105,7 @@ if ($action === 'terminal') {
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-    $callsign = $ini['General']['Callsign'] ?? '';
+    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
     $dmrid    = $ini['General']['Id'] ?? '214317526';
     $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
     $lat      = $ini['Info']['Latitude']    ?? '41.3851';
@@ -594,7 +594,7 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button class="btn-header cyan" onclick="xtTtydOpen()">⌨ Terminal</button>
+<button class="btn-header cyan" onclick="xtOpen()">⌨ Terminal</button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
 </div>
@@ -775,17 +775,6 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 </div>
 
-<!-- Modal Terminal ttyd (iframe) -->
-<div id="xtTtydModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9800;align-items:center;justify-content:center;">
-  <div style="background:#0a0e14;border:1px solid #1e2d3d;border-radius:8px;width:960px;max-width:96vw;height:620px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;background:#111720;border-bottom:1px solid #1e2d3d;flex-shrink:0;">
-      <span style="font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;">⌨ Terminal · ADER</span>
-      <button onclick="xtTtydClose()" style="background:transparent;border:1px solid var(--red);color:var(--red);font-family:'Share Tech Mono',monospace;font-size:.7rem;border-radius:4px;padding:.25rem .8rem;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='rgba(255,69,96,.15)'" onmouseout="this.style.background='transparent'">✖ Cerrar</button>
-    </div>
-    <iframe id="xtTtydFrame" src="" style="flex:1;border:none;width:100%;background:#000;" allow="clipboard-read; clipboard-write"></iframe>
-  </div>
-</div>
-
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
@@ -910,7 +899,7 @@ function closeInstalar(){document.getElementById('installModal').classList.remov
 async function confirmarInstalacion(){const btn=document.getElementById('btnInstalarOk');const msg=document.getElementById('installMsg');const out=document.getElementById('installOutput');btn.disabled=true;btn.textContent='⏳ Instalando…';msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Ejecutando instalador, espera…';out.className='install-output visible';out.textContent='';try{const r=await fetch('?action=install-display');const d=await r.json();out.textContent=d.output||'(sin salida)';out.scrollTop=out.scrollHeight;msg.className='restore-msg ok';msg.textContent='✔ Instalación completada.';btn.textContent='✔ Cerrar';btn.disabled=false;btn.onclick=function(){closeInstalar();};}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error durante la instalación.';btn.textContent='▶ Confirmar instalación';btn.disabled=false;}}
 function openRestore(){document.getElementById('restoreModal').classList.add('open');document.getElementById('restoreFile').value='';const msg=document.getElementById('restoreMsg');msg.style.display='none';msg.className='restore-msg';}
 function closeRestore(){document.getElementById('restoreModal').classList.remove('open');}
-async function doRestore(){const file=document.getElementById('restoreFile').files[0];if(!file){alert('Selecciona un fichero ZIP primero.');return;}const msg=document.getElementById('restoreMsg');msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Restaurando…';try{const form=new FormData();form.append('zipfile',file);const r=await fetch('?action=restore-configs',{method:'POST',body:form});const text=await r.text();let d;try{d=JSON.parse(text);}catch(parseErr){msg.className='restore-msg err';msg.textContent='✖ Respuesta inesperada: '+text.substring(0,200);return;}msg.className='restore-msg '+(d.ok?'ok':'err');msg.textContent=(d.ok?'✔ ':'✖ ')+d.msg;if(d.ok)setTimeout(closeRestore,2500);}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error de red: '+e.message;}}
+async function doRestore(){const file=document.getElementById('restoreFile').files[0];if(!file){alert('Selecciona un fichero ZIP primero.');return;}const msg=document.getElementById('restoreMsg');if(!file.name.startsWith('Copia_PHP')){msg.className='restore-msg err';msg.style.display='block';msg.textContent='✖ Fichero no válido. El nombre debe empezar por "Copia_PHP".';return;}msg.className='restore-msg loading';msg.style.display='block';msg.textContent='⏳ Restaurando…';try{const form=new FormData();form.append('zipfile',file);const r=await fetch('?action=restore-configs',{method:'POST',body:form});const text=await r.text();let d;try{d=JSON.parse(text);}catch(parseErr){msg.className='restore-msg err';msg.textContent='✖ Respuesta inesperada: '+text.substring(0,200);return;}msg.className='restore-msg '+(d.ok?'ok':'err');msg.textContent=(d.ok?'✔ ':'✖ ')+d.msg;if(d.ok)setTimeout(closeRestore,2500);}catch(e){msg.className='restore-msg err';msg.textContent='✖ Error de red: '+e.message;}}
 
 function colorize(text){return text.split('\n').map(l=>{const ll=l.toLowerCase();if(/error|fail|abort|assert/.test(ll))return`<span class="ln-err">${l}</span>`;if(/warn/.test(ll))return`<span class="ln-warn">${l}</span>`;if(/connect|start|open|loaded|success/.test(ll))return`<span class="ln-ok">${l}</span>`;return`<span class="ln-info">${l}</span>`;}).join('\n');}
 function clearLog(id){document.getElementById(id).innerHTML='';}
@@ -955,17 +944,6 @@ async function feditSave(){
     }catch(e){msg.className='fedit-msg err';msg.textContent='✖ Error: '+e.message;msg.style.display='block';}
 }
 function feditClose(){document.getElementById('feditModal').classList.remove('open');}
-
-/* ── Terminal ttyd (iframe modal) ── */
-function xtTtydOpen(){
-    var url='http://'+window.location.hostname+':7681';
-    document.getElementById('xtTtydFrame').src=url;
-    document.getElementById('xtTtydModal').style.display='flex';
-}
-function xtTtydClose(){
-    document.getElementById('xtTtydModal').style.display='none';
-    document.getElementById('xtTtydFrame').src='';
-}
 
 /* ── Terminal ── */
 (function(){
