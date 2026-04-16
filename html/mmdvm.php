@@ -68,16 +68,37 @@ if ($action === 'save-file') {
 }
 
 if ($action === 'terminal') {
+
     $cmd = trim($_POST['cmd'] ?? '');
-    // Bloquear comandos interactivos que no deben llegar al servidor
-   if (preg_match('/^\s*(vim|vi|less|more|top|htop|su)\s*/i', $cmd)) {
+
+    // Bloquear solo comandos interactivos reales (nano ya NO aquí)
+    if (preg_match('/^\s*(vim|vi|less|more|top|htop|su)\s*/i', $cmd)) {
         header('Content-Type: application/json');
-        echo json_encode(['output' => 'Comando interactivo no soportado. Usa: edit /ruta/fichero']);
+        echo json_encode([
+            'output' => 'Comando interactivo no soportado. Usa: nano /ruta/fichero'
+        ]);
         exit;
     }
-    $out = $cmd !== '' ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '') : '';
+
+    // Seguridad extra: evitar cosas peligrosas básicas
+    if (preg_match('/(rm\s+-rf|shutdown|reboot|mkfs|dd\s+if=)/i', $cmd)) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'output' => '❌ Comando bloqueado por seguridad'
+        ]);
+        exit;
+    }
+
+    // Ejecutar comando como usuario pi (sin password)
+    $out = $cmd !== ''
+        ? (shell_exec('/usr/bin/sudo -n -u pi -H bash -c ' . escapeshellarg($cmd) . ' 2>&1') ?? '')
+        : '';
+
     header('Content-Type: application/json');
-    echo json_encode(['output' => htmlspecialchars($out)]);
+    echo json_encode([
+        'output' => htmlspecialchars($out)
+    ]);
+
     exit;
 }
 
@@ -319,7 +340,7 @@ if ($action === 'ysf-transmission') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PANEL ADER PHP2</title>
+<title>Panel ADER</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
 <style>
@@ -573,8 +594,7 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
-<button class="btn-header cyan" onclick="window.open('http://'+window.location.hostname+':7681','_blank')">⌨ Terminal</button>
-
+<button class="btn-header cyan" onclick="xtTtydOpen()">⌨ Terminal</button>
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
 </div>
@@ -755,10 +775,21 @@ button.btn-header { font-family: var(--font-mono); }
 </div>
 </div>
 
+<!-- Modal Terminal ttyd (iframe) -->
+<div id="xtTtydModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9800;align-items:center;justify-content:center;">
+  <div style="background:#0a0e14;border:1px solid #1e2d3d;border-radius:8px;width:960px;max-width:96vw;height:620px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;background:#111720;border-bottom:1px solid #1e2d3d;flex-shrink:0;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;">⌨ Terminal · EA3EIZ</span>
+      <button onclick="xtTtydClose()" style="background:transparent;border:1px solid var(--red);color:var(--red);font-family:'Share Tech Mono',monospace;font-size:.7rem;border-radius:4px;padding:.25rem .8rem;cursor:pointer;transition:background .2s;" onmouseover="this.style.background='rgba(255,69,96,.15)'" onmouseout="this.style.background='transparent'">✖ Cerrar</button>
+    </div>
+    <iframe id="xtTtydFrame" src="" style="flex:1;border:none;width:100%;background:#000;" allow="clipboard-read; clipboard-write"></iframe>
+  </div>
+</div>
+
 <!-- Modal Terminal -->
 <div id="xtModal" class="xterm-modal" onclick="if(event.target===this)xtClose()">
 <div class="xterm-box">
-  <div class="xterm-title">⌨ Terminal · EA3EIZ</div>
+  <div class="xterm-title">⌨ Emulador de terminal</div>
   <div class="xterm-out" id="xtOut">pi@raspberry:~$ Terminal lista
 </div>
   <div class="xterm-row">
@@ -925,55 +956,170 @@ async function feditSave(){
 }
 function feditClose(){document.getElementById('feditModal').classList.remove('open');}
 
+/* ── Terminal ttyd (iframe modal) ── */
+function xtTtydOpen(){
+    var url='http://'+window.location.hostname+':7681';
+    document.getElementById('xtTtydFrame').src=url;
+    document.getElementById('xtTtydModal').style.display='flex';
+}
+function xtTtydClose(){
+    document.getElementById('xtTtydModal').style.display='none';
+    document.getElementById('xtTtydFrame').src='';
+}
+
 /* ── Terminal ── */
 (function(){
 var xtHist=[],xtHidx=-1,xtCwd='/home/pi';
-function xtPr(){return 'pi@raspberry:'+xtCwd.replace('/home/pi','~')+'$';}
-function xtApp(html){var o=document.getElementById('xtOut');o.innerHTML+=html+'\n';o.scrollTop=o.scrollHeight;}
-function xtEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-window.xtOpen=function(){document.getElementById('xtModal').classList.add('open');setTimeout(function(){document.getElementById('xtInp').focus();},80);};
-window.xtClose=function(){document.getElementById('xtModal').classList.remove('open');document.getElementById('xtOut').innerHTML='pi@raspberry:~$ Terminal lista\n';};
+
+function xtPr(){
+    return 'pi@raspberry:'+xtCwd.replace('/home/pi','~')+'$';
+}
+
+function xtApp(html){
+    var o=document.getElementById('xtOut');
+    o.innerHTML+=html+'\n';
+    o.scrollTop=o.scrollHeight;
+}
+
+function xtEsc(s){
+    return String(s||'')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+}
+
+window.xtOpen=function(){
+    document.getElementById('xtModal').classList.add('open');
+    setTimeout(function(){
+        document.getElementById('xtInp').focus();
+    },80);
+};
+
+window.xtClose=function(){
+    document.getElementById('xtModal').classList.remove('open');
+};
+
 document.getElementById('xtInp').addEventListener('keydown',async function(e){
+
     if(e.key==='Escape'){xtClose();return;}
-    if(e.key==='ArrowUp'){e.preventDefault();if(xtHidx<xtHist.length-1)this.value=xtHist[++xtHidx]||'';return;}
-    if(e.key==='ArrowDown'){e.preventDefault();xtHidx>0?this.value=xtHist[--xtHidx]:(xtHidx=-1,this.value='');return;}
-    if(e.key!=='Enter')return;
-    var cmd=this.value.trim();if(!cmd)return;
-    xtHist.unshift(cmd);xtHidx=-1;this.value='';
-    xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
-    if(/^\s*clear\s*$/.test(cmd)){document.getElementById('xtOut').innerHTML='';return;}
-   if(/^\s*nano\s+\S/.test(cmd)){
-    var fpath=cmd.replace(/^\s*nano\s+/,'').trim();
-        if(!fpath.startsWith('/'))fpath=xtCwd.replace(/\/$/,'')+'/'+fpath;
-        xtApp('<span class="xt-out">Abriendo editor: '+xtEsc(fpath)+'</span>');
-        feditOpen(fpath);
+
+    if(e.key==='ArrowUp'){
+        e.preventDefault();
+        if(xtHidx<xtHist.length-1)this.value=xtHist[++xtHidx]||'';
         return;
     }
-if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: nano /ruta/fichero</span>');return;}
+
+    if(e.key==='ArrowDown'){
+        e.preventDefault();
+        xtHidx>0?this.value=xtHist[--xtHidx]:(xtHidx=-1,this.value='');
+        return;
+    }
+
+    if(e.key!=='Enter')return;
+
+    var cmd=this.value.trim();
+    if(!cmd)return;
+
+    xtHist.unshift(cmd);
+    xtHidx=-1;
+    this.value='';
+
+    xtApp('<span class="xt-cmd">'+xtEsc(xtPr())+' '+xtEsc(cmd)+'</span>');
+
+    // clear
+    if(/^\s*clear\s*$/.test(cmd)){
+        document.getElementById('xtOut').innerHTML='';
+        return;
+    }
+
+    // edit o nano → abrir editor web
+   if(/^\s*(edit|nano)(\s+\S+)?\s*$/.test(cmd)){
+    var fpath = cmd.replace(/^\s*(edit|nano)\s*/,'').trim();
+
+    // Si no se especifica archivo → usar uno por defecto
+    if(!fpath){
+        fpath = xtCwd.replace(/\/$/,'') + '/nuevo.txt';
+    }
+
+    if(!fpath.startsWith('/')){
+        fpath = xtCwd.replace(/\/$/,'') + '/' + fpath;
+    }
+
+    xtApp('<span class="xt-out">Abriendo editor: '+xtEsc(fpath)+'</span>');
+    feditOpen(fpath);
+    return;
+}
+
+    // bloquear solo comandos realmente incompatibles
+    if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){
+        xtApp('<span class="xt-err">Comando interactivo no soportado. Usa: nano /ruta/fichero</span>');
+        return;
+    }
+
+    // cd
     if(/^\s*cd(\s|$)/.test(cmd)){
         var t=cmd.replace(/^\s*cd\s*/,'').trim()||'~';
-        if(t==='~'||t==='')xtCwd='/home/pi';
-        else if(t.startsWith('/'))xtCwd=t;
-        else if(t==='..'){var parts=xtCwd.split('/').filter(Boolean);parts.pop();xtCwd='/'+parts.join('/')||'/';}
-        else xtCwd=xtCwd.replace(/\/$/,'')+'/'+t;
+
+        if(t==='~'||t===''){
+            xtCwd='/home/pi';
+        }else if(t.startsWith('/')){
+            xtCwd=t;
+        }else if(t==='..'){
+            var parts=xtCwd.split('/').filter(Boolean);
+            parts.pop();
+            xtCwd='/'+parts.join('/')||'/';
+        }else{
+            xtCwd=xtCwd.replace(/\/$/,'')+'/'+t;
+        }
+
         document.getElementById('xtPr').textContent=xtPr();
         return;
     }
+
+    // ejecutar comando backend
     try{
-        var resp=await fetch('?action=terminal',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'cmd='+encodeURIComponent('cd '+xtCwd+' && '+cmd)});
+        var resp=await fetch('?action=terminal',{
+            method:'POST',
+            headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body:'cmd='+encodeURIComponent('cd '+xtCwd+' && '+cmd)
+        });
+
         var dat=await resp.json();
-        if(dat.output)xtApp('<span class="xt-out">'+dat.output+'</span>');
-    }catch(err){xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');}
+
+        if(dat.output){
+            xtApp('<span class="xt-out">'+dat.output+'</span>');
+        }
+
+    }catch(err){
+        xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');
+    }
+
 });
 })();
 
 (async()=>{
     await fetchStationInfo();
     setInterval(fetchStationInfo,60000);
-    await checkStatus();await checkYSFStatus();await checkMMDVMYSFStatus();await checkDStarStatus();
-    setInterval(checkStatus,10000);setInterval(checkYSFStatus,8000);setInterval(checkMMDVMYSFStatus,8000);setInterval(checkDStarStatus,10000);
-    if(!running){showIdle();fetchTransmission();}
-    showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
+
+    await checkStatus();
+    await checkYSFStatus();
+    await checkMMDVMYSFStatus();
+    await checkDStarStatus();
+
+    setInterval(checkStatus,10000);
+    setInterval(checkYSFStatus,8000);
+    setInterval(checkMMDVMYSFStatus,8000);
+    setInterval(checkDStarStatus,10000);
+
+    if(!running){
+        showIdle();
+        fetchTransmission();
+    }
+
+    showYSFIdle();
+    startYSFLogs();
+    startMMDVMYSFLogs();
+    startYSFTransmissionPoll();
 })();
 </script>
 </body>
