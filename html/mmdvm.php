@@ -576,16 +576,7 @@ button.btn-header { font-family: var(--font-mono); }
 <button class="btn-header cyan" onclick="window.open('http://'+window.location.hostname+':7681','_blank')">⌨ Terminal</button>
 
 
-<!-- Modal Terminal ttyd -->
-<div id="xtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9600;align-items:center;justify-content:center;">
-  <div style="background:#0a0e14;border:1px solid #1e2d3d;border-radius:8px;width:900px;max-width:96vw;height:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;background:#111720;border-bottom:1px solid #1e2d3d;">
-      <span style="font-family:'Share Tech Mono',monospace;font-size:.8rem;color:#00d4ff;letter-spacing:.12em;text-transform:uppercase;">⌨ Terminal · EA3EIZ</span>
-      <button onclick="xtClose()" style="background:transparent;border:1px solid #ff4560;color:#ff4560;font-family:'Share Tech Mono',monospace;font-size:.7rem;border-radius:4px;padding:.25rem .7rem;cursor:pointer;">✖ Cerrar</button>
-    </div>
-    <iframe id="xtFrame" src="" style="flex:1;border:none;width:100%;background:#000;"></iframe>
-  </div>
-</div>
+
 
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
@@ -989,7 +980,19 @@ if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span
 })();
 </script>
 
-<script> 
+<!-- Modal Terminal ttyd -->
+<div id="xtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9600;align-items:center;justify-content:center;">
+  <div style="background:#0a0e14;border:1px solid #1e2d3d;border-radius:8px;width:900px;max-width:96vw;height:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.7rem 1.2rem;background:#111720;border-bottom:1px solid #1e2d3d;">
+      <span style="font-family:'Share Tech Mono',monospace;font-size:.8rem;color:#00d4ff;letter-spacing:.12em;text-transform:uppercase;">⌨ Terminal · EA3EIZ</span>
+      <button onclick="xtClose()" style="background:transparent;border:1px solid #ff4560;color:#ff4560;font-family:'Share Tech Mono',monospace;font-size:.7rem;border-radius:4px;padding:.25rem .7rem;cursor:pointer;">✖ Cerrar</button>
+    </div>
+    <iframe id="xtFrame" src="" style="flex:1;border:none;width:100%;background:#000;"></iframe>
+  </div>
+</div>
+
+<script>
+
 
 function xtOpen() {
     var url = 'http://' + window.location.hostname + ':7681';
@@ -1000,6 +1003,12 @@ function xtClose() {
     document.getElementById('xtModal').style.display = 'none';
     document.getElementById('xtFrame').src = '';  // para matar la sesión al cerrar
 }
- </script>
+
+
+</script>
+
+
+
+
 </body>
 </html>
