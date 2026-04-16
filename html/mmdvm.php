@@ -979,6 +979,17 @@ if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span
 });
 })();
 
+(async()=>{
+    await fetchStationInfo();
+    setInterval(fetchStationInfo,60000);
+    await checkStatus();await checkYSFStatus();await checkMMDVMYSFStatus();await checkDStarStatus();
+    setInterval(checkStatus,10000);setInterval(checkYSFStatus,8000);setInterval(checkMMDVMYSFStatus,8000);setInterval(checkDStarStatus,10000);
+    if(!running){showIdle();fetchTransmission();}
+    showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
+})();
+</script>
+
+<script> 
 
 function xtOpen() {
     var url = 'http://' + window.location.hostname + ':7681';
@@ -989,19 +1000,6 @@ function xtClose() {
     document.getElementById('xtModal').style.display = 'none';
     document.getElementById('xtFrame').src = '';  // para matar la sesión al cerrar
 }
-
-
-
-
-
-(async()=>{
-    await fetchStationInfo();
-    setInterval(fetchStationInfo,60000);
-    await checkStatus();await checkYSFStatus();await checkMMDVMYSFStatus();await checkDStarStatus();
-    setInterval(checkStatus,10000);setInterval(checkYSFStatus,8000);setInterval(checkMMDVMYSFStatus,8000);setInterval(checkDStarStatus,10000);
-    if(!running){showIdle();fetchTransmission();}
-    showYSFIdle();startYSFLogs();startMMDVMYSFLogs();startYSFTransmissionPoll();
-})();
-</script>
+ </script>
 </body>
 </html>
