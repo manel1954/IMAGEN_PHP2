@@ -582,7 +582,8 @@ button.btn-header { font-family: var(--font-mono); }
     </div>
     <iframe id="xtFrame" src="" style="flex:1;border:none;width:100%;background:#000;"></iframe>
   </div>
-</div><button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
+</div>
+<button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
 </div>
 </header>
@@ -973,13 +974,6 @@ if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span
     }catch(err){xtApp('<span class="xt-err">Error: '+xtEsc(err.message)+'</span>');}
 });
 })();
-
-
-
-
-
-
-
 
 (async()=>{
     await fetchStationInfo();
