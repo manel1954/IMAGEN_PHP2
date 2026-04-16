@@ -105,7 +105,7 @@ if ($action === 'terminal') {
 if ($action === 'station-info') {
     $iniPath = '/home/pi/MMDVMHost/MMDVMHost.ini';
     $ini = parseMMDVMIni($iniPath);
-    $callsign = $ini['General']['Callsign'] ?? 'EA3EIZ';
+    $callsign = $ini['General']['Callsign'] ?? '';
     $dmrid    = $ini['General']['Id'] ?? '214317526';
     $txfreq   = $ini['General']['TXFrequency'] ?? ($ini['General']['Frequency'] ?? '430000000');
     $lat      = $ini['Info']['Latitude']    ?? '41.3851';
