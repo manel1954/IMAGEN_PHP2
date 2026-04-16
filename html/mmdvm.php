@@ -979,6 +979,21 @@ if(/^\s*(sudo\s+su|su\s*$|top|htop|vim|vi|less|more)\s*/.test(cmd)){xtApp('<span
 });
 })();
 
+
+function xtOpen() {
+    var url = 'http://' + window.location.hostname + ':7681';
+    document.getElementById('xtFrame').src = url;
+    document.getElementById('xtModal').style.display = 'flex';
+}
+function xtClose() {
+    document.getElementById('xtModal').style.display = 'none';
+    document.getElementById('xtFrame').src = '';  // para matar la sesión al cerrar
+}
+
+
+
+
+
 (async()=>{
     await fetchStationInfo();
     setInterval(fetchStationInfo,60000);
