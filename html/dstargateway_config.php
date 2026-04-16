@@ -147,8 +147,8 @@ foreach ($parsed as $section => $lines) {
             $fieldKey = htmlspecialchars($section . '__' . $entry['key']);
             $val = htmlspecialchars($entry['value']);
             $hint = $entry['comment'] ?? '';
-            $isBool = in_array(strtolower($entry['value']), ['true','false','1','0','yes','no','enable','disable','enabled','disabled']);
-            echo '<div class="field-row">';
+$isBool = !is_numeric($entry['value'])
+    && in_array(strtolower($entry['value']), ['true','false','yes','no','enable','disable','enabled','disabled']);            echo '<div class="field-row">';
             echo '<label class="field-label">' . htmlspecialchars($entry['key']) . '</label>';
             if ($isBool) {
                 echo '<select name="' . $fieldKey . '" class="field-input bool">';
