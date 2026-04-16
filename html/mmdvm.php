@@ -573,6 +573,9 @@ button.btn-header { font-family: var(--font-mono); }
     <button class="dropdown-item-custom" onclick="runUpdate('ysf')">📡 Actualizar Reflectores YSF</button>
   </div>
 </div>
+<button class="btn-header cyan" onclick="window.open('http://'+window.location.hostname+':7681','_blank')">⌨ Terminal</button>
+
+
 <!-- Modal Terminal ttyd -->
 <div id="xtModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9600;align-items:center;justify-content:center;">
   <div style="background:#0a0e14;border:1px solid #1e2d3d;border-radius:8px;width:900px;max-width:96vw;height:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
@@ -583,6 +586,7 @@ button.btn-header { font-family: var(--font-mono); }
     <iframe id="xtFrame" src="" style="flex:1;border:none;width:100%;background:#000;"></iframe>
   </div>
 </div>
+
 <button id="btnReboot" class="btn-header red" onclick="rebootPi()">⏻ Reiniciar Pi</button>
 
 </div>
